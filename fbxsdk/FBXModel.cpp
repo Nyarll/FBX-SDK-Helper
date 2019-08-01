@@ -167,7 +167,7 @@ void FBXSDK_Helper::FBX_Model::FBX_SetVertexData(ID3D11Device1* device)
 
 		// インデックスデータの取り出しとバッファの設定
 		D3D11_BUFFER_DESC bd_index;
-		bd_index.ByteWidth = sizeof(int) * m_mesh->GetPolygonVertexCount();
+		bd_index.ByteWidth = sizeof(unsigned int) * m_mesh->GetPolygonVertexCount();
 		bd_index.Usage = D3D11_USAGE_DEFAULT;
 		bd_index.BindFlags = D3D11_BIND_INDEX_BUFFER;
 		bd_index.CPUAccessFlags = 0;

@@ -106,7 +106,7 @@ void Game::Render()
 	DirectX::SimpleMath::Vector3 up(0, 1, 0);
 	m_view = DirectX::SimpleMath::Matrix::CreateLookAt(eye, target, up);
 
-	DirectX::SimpleMath::Matrix world = DirectX::SimpleMath::Matrix::Identity;
+	DirectX::SimpleMath::Matrix world = XMMatrixRotationY(angleX += addAngle);
 	m_model->Draw(context, world, m_view, m_proj);
 
 	// <•`‰æ‚Ì’¼‘O‚É‚±‚ê‚ðŒÄ‚Ô>
@@ -115,13 +115,15 @@ void Game::Render()
 	ImGui::NewFrame();
 
 	{
-		ImGui::SetNextWindowSize(ImVec2(320, 320));
+		//ImGui::SetNextWindowSize(ImVec2(320, 320));
 		ImGui::Begin(u8"hogehoge", nullptr);
 		ImGui::Text("Back Color");
 
 		ImGui::SliderFloat("R", &m_backColor.x, 0.0f, 1.0f);
 		ImGui::SliderFloat("G", &m_backColor.y, 0.0f, 1.0f);
 		ImGui::SliderFloat("B", &m_backColor.z, 0.0f, 1.0f);
+		ImGui::Text("Rotate");
+		ImGui::SliderFloat("rotate", &addAngle, -1.0f, 1.0f);
 		ImGui::End();
 	}
 

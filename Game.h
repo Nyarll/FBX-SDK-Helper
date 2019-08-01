@@ -67,6 +67,9 @@ private:
 	DirectX::SimpleMath::Vector4 m_backColor;
 	DirectX::SimpleMath::Vector3 m_eye;
 
+	float angleX = 0;
+	float addAngle = 1.f;
+
 	std::unique_ptr<FBXSDK_Helper::FBX_Model>	m_model;
 
 	DirectX::SimpleMath::Matrix m_view;
