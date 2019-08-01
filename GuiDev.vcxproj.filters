@@ -1,0 +1,102 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Common">
+      <UniqueIdentifier>90b76516-36b9-4247-9b22-4905d0439853</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Assets">
+      <UniqueIdentifier>d433d430-28b1-4a09-a5dc-0657b1deeda7</UniqueIdentifier>
+      <Extensions>ico;cur;bmp;dds;dlg;fbx;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tga;tiff;tif;png;wav;mfcribbon-ms</Extensions>
+    </Filter>
+    <Filter Include="Gui">
+      <UniqueIdentifier>{2ada27df-5476-4ac4-a975-25aaa06ec4f2}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="fbxsdk">
+      <UniqueIdentifier>{06059855-ed41-4221-acdb-9a06127e189a}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="pch.h" />
+    <ClInclude Include="Game.h" />
+    <ClInclude Include="StepTimer.h">
+      <Filter>Common</Filter>
+    </ClInclude>
+    <ClInclude Include="DeviceResources.h">
+      <Filter>Common</Filter>
+    </ClInclude>
+    <ClInclude Include="Gui\imgui_impl_dx11.h">
+      <Filter>Gui</Filter>
+    </ClInclude>
+    <ClInclude Include="Gui\imgui.h">
+      <Filter>Gui</Filter>
+    </ClInclude>
+    <ClInclude Include="Gui\imconfig.h">
+      <Filter>Gui</Filter>
+    </ClInclude>
+    <ClInclude Include="Gui\imgui_internal.h">
+      <Filter>Gui</Filter>
+    </ClInclude>
+    <ClInclude Include="Gui\imgui_impl_win32.h">
+      <Filter>Gui</Filter>
+    </ClInclude>
+    <ClInclude Include="Gui\imstb_rectpack.h">
+      <Filter>Gui</Filter>
+    </ClInclude>
+    <ClInclude Include="Gui\imstb_textedit.h">
+      <Filter>Gui</Filter>
+    </ClInclude>
+    <ClInclude Include="Gui\imstb_truetype.h">
+      <Filter>Gui</Filter>
+    </ClInclude>
+    <ClInclude Include="fbxsdk\FBXModel.h">
+      <Filter>fbxsdk</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="pch.cpp" />
+    <ClCompile Include="Game.cpp" />
+    <ClCompile Include="Main.cpp" />
+    <ClCompile Include="DeviceResources.cpp">
+      <Filter>Common</Filter>
+    </ClCompile>
+    <ClCompile Include="Gui\imgui_impl_dx11.cpp">
+      <Filter>Gui</Filter>
+    </ClCompile>
+    <ClCompile Include="Gui\imgui.cpp">
+      <Filter>Gui</Filter>
+    </ClCompile>
+    <ClCompile Include="Gui\imgui_demo.cpp">
+      <Filter>Gui</Filter>
+    </ClCompile>
+    <ClCompile Include="Gui\imgui_draw.cpp">
+      <Filter>Gui</Filter>
+    </ClCompile>
+    <ClCompile Include="Gui\imgui_impl_win32.cpp">
+      <Filter>Gui</Filter>
+    </ClCompile>
+    <ClCompile Include="Gui\imgui_widgets.cpp">
+      <Filter>Gui</Filter>
+    </ClCompile>
+    <ClCompile Include="fbxsdk\FBXModel.cpp">
+      <Filter>fbxsdk</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="resource.rc" />
+  </ItemGroup>
+  <ItemGroup>
+    <Image Include="directx.ico">
+      <Filter>Assets</Filter>
+    </Image>
+  </ItemGroup>
+  <ItemGroup>
+    <Manifest Include="settings.manifest">
+      <Filter>Assets</Filter>
+    </Manifest>
+  </ItemGroup>
+  <ItemGroup>
+    <FxCompile Include="shader.hlsl">
+      <Filter>fbxsdk</Filter>
+    </FxCompile>
+  </ItemGroup>
+</Project>
