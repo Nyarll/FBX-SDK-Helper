@@ -21,10 +21,11 @@
 // に設定しましょう
 
 // <include>
+#include <DirectXMath.h>
+#include <SimpleMath.h>
+#include <d3d11.h>
 #include <d3dcompiler.h>
 #include <fbxsdk.h>
-
-#include <SimpleMath.h>
 
 // <link FBX SDK library>
 // -mt(マルチスレッドデバッグ(MTd))
@@ -74,16 +75,22 @@ namespace FBXSDK_Helper
 
 		// <描画>
 		void Draw(
-			ID3D11DeviceContext1* context,
-			DirectX::SimpleMath::Matrix world,
-			DirectX::SimpleMath::Matrix view,
-			DirectX::SimpleMath::Matrix proj);
+			ID3D11DeviceContext* context,
+			DirectX::XMMATRIX& world,
+			DirectX::XMMATRIX& view,
+			DirectX::XMMATRIX& proj);
+
+		void Draw(
+			ID3D11DeviceContext* context,
+			DirectX::SimpleMath::Matrix& world,
+			DirectX::SimpleMath::Matrix& view,
+			DirectX::SimpleMath::Matrix& proj);
 
 		// <モデル作成>
 		void Create(
 			HWND hwnd,
-			ID3D11Device1* device,
-			ID3D11DeviceContext1* context,
+			ID3D11Device* device,
+			ID3D11DeviceContext* context,
 			ID3D11RenderTargetView* renderTargetView,
 			const char* fbxfile_path);
 
@@ -93,7 +100,7 @@ namespace FBXSDK_Helper
 	private:
 		void FBX_Import(const char* fbxfile_path);
 		void FBX_GetVertex();
-		void FBX_SetVertexData(ID3D11Device1* device);
+		void FBX_SetVertexData(ID3D11Device* device);
 	};
 
 }
