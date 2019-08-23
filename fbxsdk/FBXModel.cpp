@@ -10,82 +10,7 @@ FBXSDK_Helper::FBX_Model::~FBX_Model()
 	Destroy();
 }
 
-void FBXSDK_Helper::FBX_Model::Draw(ID3D11DeviceContext* context, DirectX::XMMATRIX& world,
-	DirectX::XMMATRIX& view, DirectX::XMMATRIX& proj)
-{
-	// ----- Animation -----
-	timeCount += FrameTime;
-	if (timeCount > stop) timeCount = start;
-
-	// 移動、回転、拡大のための行列を作成
-	FbxMatrix globalPosition = m_meshNode->EvaluateGlobalTransform(timeCount);
-	FbxVector4 t0 = m_meshNode->GetGeometricTranslation(FbxNode::eSourcePivot);
-	FbxVector4 r0 = m_meshNode->GetGeometricRotation(FbxNode::eSourcePivot);
-	FbxVector4 s0 = m_meshNode->GetGeometricScaling(FbxNode::eSourcePivot);
-	FbxAMatrix geometryOffset = FbxAMatrix(t0, r0, s0);
-
-	// 各頂点に掛けるための最終的な行列の配列
-	FbxMatrix *clusterDeformation = new FbxMatrix[m_mesh->GetControlPointsCount()];
-	memset(clusterDeformation, 0, sizeof(FbxMatrix) * m_mesh->GetControlPointsCount());
-
-	FbxSkin *skinDeformer = (FbxSkin *)m_mesh->GetDeformer(0, FbxDeformer::eSkin);
-	int clusterCount = skinDeformer->GetClusterCount();
-	// 各クラスタから各頂点に影響を与えるための行列作成
-	for (int clusterIndex = 0; clusterIndex < clusterCount; clusterIndex++) {
-		// クラスタ(ボーン)の取り出し
-		FbxCluster *cluster = skinDeformer->GetCluster(clusterIndex);
-		FbxMatrix vertexTransformMatrix;
-		FbxAMatrix referenceGlobalInitPosition;
-		FbxAMatrix clusterGlobalInitPosition;
-		FbxMatrix clusterGlobalCurrentPosition;
-		FbxMatrix clusterRelativeInitPosition;
-		FbxMatrix clusterRelativeCurrentPositionInverse;
-		cluster->GetTransformMatrix(referenceGlobalInitPosition);
-		referenceGlobalInitPosition *= geometryOffset;
-		cluster->GetTransformLinkMatrix(clusterGlobalInitPosition);
-		clusterGlobalCurrentPosition = cluster->GetLink()->EvaluateGlobalTransform(timeCount);
-		clusterRelativeInitPosition = clusterGlobalInitPosition.Inverse() * referenceGlobalInitPosition;
-		clusterRelativeCurrentPositionInverse = globalPosition.Inverse() * clusterGlobalCurrentPosition;
-		vertexTransformMatrix = clusterRelativeCurrentPositionInverse * clusterRelativeInitPosition;
-		// 上で作った行列に各頂点毎の影響度(重み)を掛けてそれぞれに加算
-		for (int i = 0; i < cluster->GetControlPointIndicesCount(); i++) {
-			int index = cluster->GetControlPointIndices()[i];
-			double weight = cluster->GetControlPointWeights()[i];
-			FbxMatrix influence = vertexTransformMatrix * weight;
-			clusterDeformation[index] += influence;
-		}
-	}
-
-	// 最終的な頂点座標を計算しVERTEXに変換
-	for (int i = 0; i < m_mesh->GetControlPointsCount(); i++) {
-		FbxVector4 outVertex = clusterDeformation[i].MultNormalize(m_mesh->GetControlPointAt(i));
-		vertices[i].Pos.x = (FLOAT)outVertex[0];
-		vertices[i].Pos.y = (FLOAT)outVertex[1];
-		vertices[i].Pos.z = (FLOAT)outVertex[2];
-	}
-
-	delete[] clusterDeformation;
-	// ---------------------
-
-
-	D3D11_MAPPED_SUBRESOURCE pdata;
-	CONSTANT_BUFFER cb;
-	// パラメータの受け渡し(定数)
-	cb.mWVP = DirectX::XMMatrixTranspose(world * view * proj);
-	context->Map(m_constantBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &pdata);
-	memcpy_s(pdata.pData, pdata.RowPitch, (void*)(&cb), sizeof(cb));
-	context->Unmap(m_constantBuffer, 0);
-
-	// パラメータの受け渡し(頂点)
-	context->Map(VerBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &pdata);
-	memcpy_s(pdata.pData, pdata.RowPitch, (void*)(vertices), sizeof(VERTEX) * m_mesh->GetControlPointsCount());
-	context->Unmap(VerBuffer, 0);
-
-	// 描画実行
-	context->DrawIndexed(m_mesh->GetPolygonVertexCount(), 0, 0);
-}
-
-void FBXSDK_Helper::FBX_Model::Draw(ID3D11DeviceContext * context, DirectX::SimpleMath::Matrix & world, DirectX::SimpleMath::Matrix & view, DirectX::SimpleMath::Matrix & proj)
+void FBXSDK_Helper::FBX_Model::Draw(ID3D11DeviceContext1 * context, DirectX::SimpleMath::Matrix & world, DirectX::SimpleMath::Matrix & view, DirectX::SimpleMath::Matrix & proj)
 {
 	// ----- Animation -----
 	timeCount += FrameTime;
@@ -161,8 +86,8 @@ void FBXSDK_Helper::FBX_Model::Draw(ID3D11DeviceContext * context, DirectX::Simp
 
 void FBXSDK_Helper::FBX_Model::Create(
 	HWND hwnd,
-	ID3D11Device* device,
-	ID3D11DeviceContext* context,
+	ID3D11Device1* device,
+	ID3D11DeviceContext1* context,
 	ID3D11RenderTargetView* renderTargetView,
 	const char* fbxfile_path)
 {
@@ -304,7 +229,7 @@ void FBXSDK_Helper::FBX_Model::FBX_GetVertex()
 	}
 }
 
-void FBXSDK_Helper::FBX_Model::FBX_SetVertexData(ID3D11Device* device)
+void FBXSDK_Helper::FBX_Model::FBX_SetVertexData(ID3D11Device1* device)
 {
 	{
 		D3D11_BUFFER_DESC bd_vertex;
@@ -342,7 +267,8 @@ FBXSDK_Helper::FBX_AnimationModel::~FBX_AnimationModel()
 	Destroy();
 }
 
-void FBXSDK_Helper::FBX_AnimationModel::Draw(ID3D11DeviceContext1 * context, DirectX::SimpleMath::Matrix world, DirectX::SimpleMath::Matrix view, DirectX::SimpleMath::Matrix proj)
+void FBXSDK_Helper::FBX_AnimationModel::Draw(ID3D11DeviceContext1 * context,
+	DirectX::SimpleMath::Matrix& world, DirectX::SimpleMath::Matrix& view, DirectX::SimpleMath::Matrix& proj)
 {
 	// ----- Animation -----
 	timeCount += FrameTime;

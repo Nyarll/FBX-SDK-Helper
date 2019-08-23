@@ -1,24 +1,24 @@
 #pragma once
 
-// <FBX SDK �w���p�[�N���X>
-// <�쐬�� : 2019 / 08 / 02>
-// <�쐬�� : Nyarll>
+// <FBX SDK ヘルパークラス>
+// <作成日 : 2019 / 08 / 02>
+// <作成者 : Nyarll>
 // GitHub : https://github.com/Nyarll
 
-// <FBX�t�@�C�����璼�ڃ��f����\�����邽�߂�SDK>
-// <�_�E�����[�h�y�[�W>
+// <FBXファイルから直接モデルを表示するためのSDK>
+// <ダウンロードページ>
 // https://www.autodesk.com/developer-network/platform-technologies/fbx-sdk-2019-5
-// <�Q�l�T�C�g>
+// <参考サイト>
 // https://www.tkng45memo.com/fbxmesh
-// <�ȉ��̏ꏊ�� FBX SDK ���C���X�g�[�����܂��傤(�f�t�H���g�̏ꏊ)>
+// <以下の場所に FBX SDK をインストールしましょう(デフォルトの場所)>
 // C:\Program Files\Autodesk\FBX\FBX SDK\2019.5
-// DirectXTK�Ɠ��l�ɁA�ǉ��̃C���N���[�h�t�@�C���Ȃǂ̎w������܂��傤(�Q�l�T�C�g������΂����炭�������܂�)
+// DirectXTKと同様に、追加のインクルードファイルなどの指定をしましょう(参考サイトを見ればおそらく解決します)
 
-// <�t���i(?)�̃V�F�[�_�[�t�@�C��[shader.hlsl]�ɂ���>
-// ���̕ύX(���ȐӔC)
-// Visual Studio ����A shader.hlsl �̃v���p�e�B -> HLSL�R���p�C�� -> �S��
-// �S�ʃ^�u���� �V�F�[�_�[�̎�� : �G�t�F�N�g(/fx) , �V�F�[�_�[���f�� : Shader Model 5.0(/5_0)
-// �ɐݒ肵�܂��傤
+// <付属品(?)のシェーダーファイル[shader.hlsl]について>
+// 名称変更(自己責任)
+// Visual Studio から、 shader.hlsl のプロパティ -> HLSLコンパイラ -> 全般
+// 全般タブ内の シェーダーの種類 : エフェクト(/fx) , シェーダーモデル : Shader Model 5.0(/5_0)
+// に設定しましょう
 
 // <include>
 #include <DirectXMath.h>
@@ -28,12 +28,13 @@
 #include <fbxsdk.h>
 
 // <link FBX SDK library>
-// -mt(�}���`�X���b�h�f�o�b�O(MTd))
-#pragma comment(lib, "libfbxsdk-mt.lib")
-#pragma comment(lib, "zlib-mt.lib")
-#pragma comment(lib, "libxml2-mt.lib")
-#pragma comment(lib, "libfbxsdk.lib")
+// -mt(マルチスレッドデバッグ(MTd))
+//#pragma comment(lib, "libfbxsdk-mt.lib")
+//#pragma comment(lib, "zlib-mt.lib")
+//#pragma comment(lib, "libxml2-mt.lib")
+//#pragma comment(lib, "libfbxsdk.lib")
 #pragma comment(lib, "d3dcompiler.lib")
+
 
 namespace FBXSDK_Helper
 {
@@ -41,12 +42,12 @@ namespace FBXSDK_Helper
 	class FBX_Model
 	{
 	protected:
-		// <��̒��_�����i�[����\����>
+		// <一つの頂点情報を格納する構造体>
 		struct VERTEX {
 			DirectX::XMFLOAT3 Pos;
 		};
 
-		// <GPU(�V�F�[�_��)�֑��鐔�l���܂Ƃ߂��\����>
+		// <GPU>
 		struct CONSTANT_BUFFER {
 			DirectX::XMMATRIX mWVP;
 		};
@@ -73,28 +74,22 @@ namespace FBXSDK_Helper
 		FBX_Model();
 		~FBX_Model();
 
-		// <�`��>
+		// <描画>
 		virtual void Draw(
 			ID3D11DeviceContext1* context,
-			DirectX::SimpleMath::Matrix world,
-			DirectX::SimpleMath::Matrix view,
-			DirectX::SimpleMath::Matrix proj);
-
-		void Draw(
-			ID3D11DeviceContext* context,
 			DirectX::SimpleMath::Matrix& world,
 			DirectX::SimpleMath::Matrix& view,
 			DirectX::SimpleMath::Matrix& proj);
 
-		// <���f���쐬>
+		// <モデル作成>
 		virtual void Create(
 			HWND hwnd,
-			ID3D11Device* device,
-			ID3D11DeviceContext* context,
+			ID3D11Device1* device,
+			ID3D11DeviceContext1* context,
 			ID3D11RenderTargetView* renderTargetView,
 			const char* fbxfile_path);
 
-		// <�j��>
+		// <破棄>
 		void Destroy();
 
 	protected:
@@ -114,14 +109,14 @@ namespace FBXSDK_Helper
 		FBX_AnimationModel();
 		~FBX_AnimationModel();
 
-		// <�`��>
+		// <描画>
 		virtual void Draw(
 			ID3D11DeviceContext1* context,
-			DirectX::SimpleMath::Matrix world,
-			DirectX::SimpleMath::Matrix view,
-			DirectX::SimpleMath::Matrix proj)override;
+			DirectX::SimpleMath::Matrix& world,
+			DirectX::SimpleMath::Matrix& view,
+			DirectX::SimpleMath::Matrix& proj)override;
 
-		// <���f���쐬>
+		// <モデル作成>
 		virtual void Create(
 			HWND hwnd,
 			ID3D11Device1* device,
