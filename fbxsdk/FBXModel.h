@@ -1,33 +1,34 @@
 #pragma once
 
-// <FBX SDK ƒwƒ‹ƒp[ƒNƒ‰ƒX>
-// <ì¬“ú : 2019 / 08 / 02>
-// <ì¬Ò : Nyarll>
+// <FBX SDK ï¿½wï¿½ï¿½ï¿½pï¿½[ï¿½Nï¿½ï¿½ï¿½X>
+// <ï¿½ì¬ï¿½ï¿½ : 2019 / 08 / 02>
+// <ï¿½ì¬ï¿½ï¿½ : Nyarll>
 // GitHub : https://github.com/Nyarll
 
-// <FBXƒtƒ@ƒCƒ‹‚©‚ç’¼Úƒ‚ƒfƒ‹‚ğ•\¦‚·‚é‚½‚ß‚ÌSDK>
-// <ƒ_ƒEƒ“ƒ[ƒhƒy[ƒW>
+// <FBXï¿½tï¿½@ï¿½Cï¿½ï¿½ï¿½ï¿½ï¿½ç’¼ï¿½Úƒï¿½ï¿½fï¿½ï¿½ï¿½ï¿½\ï¿½ï¿½ï¿½ï¿½ï¿½é‚½ï¿½ß‚ï¿½SDK>
+// <ï¿½_ï¿½Eï¿½ï¿½ï¿½ï¿½ï¿½[ï¿½hï¿½yï¿½[ï¿½W>
 // https://www.autodesk.com/developer-network/platform-technologies/fbx-sdk-2019-5
-// <QlƒTƒCƒg>
+// <ï¿½Qï¿½lï¿½Tï¿½Cï¿½g>
 // https://www.tkng45memo.com/fbxmesh
-// <ˆÈ‰º‚ÌêŠ‚É FBX SDK ‚ğƒCƒ“ƒXƒg[ƒ‹‚µ‚Ü‚µ‚å‚¤(ƒfƒtƒHƒ‹ƒg‚ÌêŠ)>
+// <ï¿½È‰ï¿½ï¿½ÌêŠï¿½ï¿½ FBX SDK ï¿½ï¿½ï¿½Cï¿½ï¿½ï¿½Xï¿½gï¿½[ï¿½ï¿½ï¿½ï¿½ï¿½Ü‚ï¿½ï¿½å‚¤(ï¿½fï¿½tï¿½Hï¿½ï¿½ï¿½gï¿½ÌêŠ)>
 // C:\Program Files\Autodesk\FBX\FBX SDK\2019.5
-// DirectXTK‚Æ“¯—l‚ÉA’Ç‰Á‚ÌƒCƒ“ƒNƒ‹[ƒhƒtƒ@ƒCƒ‹‚È‚Ç‚Ìw’è‚ğ‚µ‚Ü‚µ‚å‚¤(QlƒTƒCƒg‚ğŒ©‚ê‚Î‚¨‚»‚ç‚­‰ğŒˆ‚µ‚Ü‚·)
+// DirectXTKï¿½Æ“ï¿½ï¿½lï¿½ÉAï¿½Ç‰ï¿½ï¿½ÌƒCï¿½ï¿½ï¿½Nï¿½ï¿½ï¿½[ï¿½hï¿½tï¿½@ï¿½Cï¿½ï¿½ï¿½È‚Ç‚Ìwï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ü‚ï¿½ï¿½å‚¤(ï¿½Qï¿½lï¿½Tï¿½Cï¿½gï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Î‚ï¿½ï¿½ï¿½ï¿½ç‚­ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ü‚ï¿½)
 
-// <•t‘®•i(?)‚ÌƒVƒF[ƒ_[ƒtƒ@ƒCƒ‹[shader.hlsl]‚É‚Â‚¢‚Ä>
-// –¼Ì•ÏX(©ŒÈÓ”C)
-// Visual Studio ‚©‚çA shader.hlsl ‚ÌƒvƒƒpƒeƒB -> HLSLƒRƒ“ƒpƒCƒ‰ -> ‘S”Ê
-// ‘S”Êƒ^ƒu“à‚Ì ƒVƒF[ƒ_[‚Ìí—Ş : ƒGƒtƒFƒNƒg(/fx) , ƒVƒF[ƒ_[ƒ‚ƒfƒ‹ : Shader Model 5.0(/5_0)
-// ‚Éİ’è‚µ‚Ü‚µ‚å‚¤
+// <ï¿½tï¿½ï¿½ï¿½i(?)ï¿½ÌƒVï¿½Fï¿½[ï¿½_ï¿½[ï¿½tï¿½@ï¿½Cï¿½ï¿½[shader.hlsl]ï¿½É‚Â‚ï¿½ï¿½ï¿½>
+// ï¿½ï¿½ï¿½Ì•ÏX(ï¿½ï¿½ï¿½ÈÓ”C)
+// Visual Studio ï¿½ï¿½ï¿½ï¿½A shader.hlsl ï¿½Ìƒvï¿½ï¿½ï¿½pï¿½eï¿½B -> HLSLï¿½Rï¿½ï¿½ï¿½pï¿½Cï¿½ï¿½ -> ï¿½Sï¿½ï¿½
+// ï¿½Sï¿½Êƒ^ï¿½uï¿½ï¿½ï¿½ï¿½ ï¿½Vï¿½Fï¿½[ï¿½_ï¿½[ï¿½Ìï¿½ï¿½ : ï¿½Gï¿½tï¿½Fï¿½Nï¿½g(/fx) , ï¿½Vï¿½Fï¿½[ï¿½_ï¿½[ï¿½ï¿½ï¿½fï¿½ï¿½ : Shader Model 5.0(/5_0)
+// ï¿½Éİ’è‚µï¿½Ü‚ï¿½ï¿½å‚¤
 
 // <include>
+#include <DirectXMath.h>
+#include <SimpleMath.h>
+#include <d3d11.h>
 #include <d3dcompiler.h>
 #include <fbxsdk.h>
 
-#include <SimpleMath.h>
-
 // <link FBX SDK library>
-// -mt(ƒ}ƒ‹ƒ`ƒXƒŒƒbƒhƒfƒoƒbƒO(MTd))
+// -mt(ï¿½}ï¿½ï¿½ï¿½`ï¿½Xï¿½ï¿½ï¿½bï¿½hï¿½fï¿½oï¿½bï¿½O(MTd))
 #pragma comment(lib, "libfbxsdk-mt.lib")
 #pragma comment(lib, "zlib-mt.lib")
 #pragma comment(lib, "libxml2-mt.lib")
@@ -40,12 +41,12 @@ namespace FBXSDK_Helper
 	class FBX_Model
 	{
 	protected:
-		// <ˆê‚Â‚Ì’¸“_î•ñ‚ğŠi”[‚·‚é\‘¢‘Ì>
+		// <ï¿½ï¿½Â‚Ì’ï¿½ï¿½_ï¿½ï¿½ï¿½ï¿½ï¿½iï¿½[ï¿½ï¿½ï¿½ï¿½\ï¿½ï¿½ï¿½ï¿½>
 		struct VERTEX {
 			DirectX::XMFLOAT3 Pos;
 		};
 
-		// <GPU(ƒVƒF[ƒ_‘¤)‚Ö‘—‚é”’l‚ğ‚Ü‚Æ‚ß‚½\‘¢‘Ì>
+		// <GPU(ï¿½Vï¿½Fï¿½[ï¿½_ï¿½ï¿½)ï¿½Ö‘ï¿½ï¿½é”ï¿½lï¿½ï¿½ï¿½Ü‚Æ‚ß‚ï¿½ï¿½\ï¿½ï¿½ï¿½ï¿½>
 		struct CONSTANT_BUFFER {
 			DirectX::XMMATRIX mWVP;
 		};
@@ -59,31 +60,41 @@ namespace FBXSDK_Helper
 
 		FbxManager *m_fbxManager = nullptr;
 		FbxScene *m_fbxScene = NULL;
+		FbxNode* m_meshNode = NULL;
 		FbxMesh *m_mesh = NULL;
 		ID3D11Buffer *VerBuffer = NULL;
 		ID3D11Buffer *IndBuffer = NULL;
 		VERTEX *vertices;
 
+		int AnimStackNumber = 0;
+		FbxTime FrameTime, timeCount, start, stop;
+
 	public:
 		FBX_Model();
 		~FBX_Model();
 
-		// <•`‰æ>
+		// <ï¿½`ï¿½ï¿½>
 		virtual void Draw(
 			ID3D11DeviceContext1* context,
 			DirectX::SimpleMath::Matrix world,
 			DirectX::SimpleMath::Matrix view,
 			DirectX::SimpleMath::Matrix proj);
 
-		// <ƒ‚ƒfƒ‹ì¬>
+		void Draw(
+			ID3D11DeviceContext* context,
+			DirectX::SimpleMath::Matrix& world,
+			DirectX::SimpleMath::Matrix& view,
+			DirectX::SimpleMath::Matrix& proj);
+
+		// <ï¿½ï¿½ï¿½fï¿½ï¿½ï¿½ì¬>
 		virtual void Create(
 			HWND hwnd,
-			ID3D11Device1* device,
-			ID3D11DeviceContext1* context,
+			ID3D11Device* device,
+			ID3D11DeviceContext* context,
 			ID3D11RenderTargetView* renderTargetView,
 			const char* fbxfile_path);
 
-		// <”jŠü>
+		// <ï¿½jï¿½ï¿½>
 		void Destroy();
 
 	protected:
@@ -103,14 +114,14 @@ namespace FBXSDK_Helper
 		FBX_AnimationModel();
 		~FBX_AnimationModel();
 
-		// <•`‰æ>
+		// <ï¿½`ï¿½ï¿½>
 		virtual void Draw(
 			ID3D11DeviceContext1* context,
 			DirectX::SimpleMath::Matrix world,
 			DirectX::SimpleMath::Matrix view,
 			DirectX::SimpleMath::Matrix proj)override;
 
-		// <ƒ‚ƒfƒ‹ì¬>
+		// <ï¿½ï¿½ï¿½fï¿½ï¿½ï¿½ì¬>
 		virtual void Create(
 			HWND hwnd,
 			ID3D11Device1* device,

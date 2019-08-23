@@ -68,7 +68,7 @@ private:
 	DirectX::SimpleMath::Vector3 m_eye;
 
 	float angleX = 0;
-	float addAngle = 1.f;
+	float addAngle = 0.f;
 
 	std::unique_ptr<FBXSDK_Helper::FBX_Model>	m_model;
 

@@ -1,6 +1,6 @@
 // dear imgui, v1.72 WIP
 // (main code and documentation)
-#include "pch.h"
+
 // Call and read ImGui::ShowDemoWindow() in imgui_demo.cpp for demo code.
 // Newcomers, read 'Programmer guide' below for notes on how to setup Dear ImGui in your codebase.
 // Get latest version at https://github.com/ocornut/imgui
