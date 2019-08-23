@@ -59,10 +59,14 @@ namespace FBXSDK_Helper
 
 		FbxManager *m_fbxManager = nullptr;
 		FbxScene *m_fbxScene = NULL;
+		FbxNode* m_meshNode = NULL;
 		FbxMesh *m_mesh = NULL;
 		ID3D11Buffer *VerBuffer = NULL;
 		ID3D11Buffer *IndBuffer = NULL;
 		VERTEX *vertices;
+
+		int AnimStackNumber = 0;
+		FbxTime FrameTime, timeCount, start, stop;
 
 	public:
 		FBX_Model();

@@ -1,6 +1,6 @@
 // dear imgui, v1.72 WIP
 // (widgets code)
-#include "pch.h"
+
 /*
 
 Index of this file:

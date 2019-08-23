@@ -1,6 +1,6 @@
 // dear imgui, v1.72 WIP
 // (demo code)
-#include "pch.h"
+
 // Message to the person tempted to delete this file when integrating Dear ImGui into their code base:
 // Do NOT remove this file from your project! Think again! It is the most useful reference code that you and other coders
 // will want to refer to and call. Have the ImGui::ShowDemoWindow() function wired in an always-available debug menu of
