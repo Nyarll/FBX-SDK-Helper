@@ -39,7 +39,7 @@ namespace FBXSDK_Helper
 	// <FBX Model class>
 	class FBX_Model
 	{
-	private:
+	protected:
 		// <ˆê‚Â‚Ì’¸“_î•ñ‚ðŠi”[‚·‚é\‘¢‘Ì>
 		struct VERTEX {
 			DirectX::XMFLOAT3 Pos;
@@ -50,7 +50,7 @@ namespace FBXSDK_Helper
 			DirectX::XMMATRIX mWVP;
 		};
 
-	private:
+	protected:
 		ID3D11RasterizerState *pRasterizerState;
 		ID3D11VertexShader *pVertexShader;
 		ID3D11InputLayout *pVertexLayout;
@@ -69,14 +69,14 @@ namespace FBXSDK_Helper
 		~FBX_Model();
 
 		// <•`‰æ>
-		void Draw(
+		virtual void Draw(
 			ID3D11DeviceContext1* context,
 			DirectX::SimpleMath::Matrix world,
 			DirectX::SimpleMath::Matrix view,
 			DirectX::SimpleMath::Matrix proj);
 
 		// <ƒ‚ƒfƒ‹ì¬>
-		void Create(
+		virtual void Create(
 			HWND hwnd,
 			ID3D11Device1* device,
 			ID3D11DeviceContext1* context,
@@ -86,10 +86,41 @@ namespace FBXSDK_Helper
 		// <”jŠü>
 		void Destroy();
 
-	private:
-		void FBX_Import(const char* fbxfile_path);
-		void FBX_GetVertex();
-		void FBX_SetVertexData(ID3D11Device1* device);
+	protected:
+		virtual void FBX_Import(const char* fbxfile_path);
+		virtual void FBX_GetVertex();
+		virtual void FBX_SetVertexData(ID3D11Device1* device);
 	};
 
+	class FBX_AnimationModel : public FBX_Model
+	{
+	private:
+		FbxNode* m_meshNode = NULL;
+
+		int AnimStackNumber = 0;
+		FbxTime FrameTime, timeCount, start, stop;
+	public:
+		FBX_AnimationModel();
+		~FBX_AnimationModel();
+
+		// <•`‰æ>
+		virtual void Draw(
+			ID3D11DeviceContext1* context,
+			DirectX::SimpleMath::Matrix world,
+			DirectX::SimpleMath::Matrix view,
+			DirectX::SimpleMath::Matrix proj)override;
+
+		// <ƒ‚ƒfƒ‹ì¬>
+		virtual void Create(
+			HWND hwnd,
+			ID3D11Device1* device,
+			ID3D11DeviceContext1* context,
+			ID3D11RenderTargetView* renderTargetView,
+			const char* fbxfile_path)override;
+
+	protected:
+		virtual void FBX_Import(const char* fbxfile_path)override;
+		virtual void FBX_SetVertexData(ID3D11Device1* device)override;
+
+	};
 }
