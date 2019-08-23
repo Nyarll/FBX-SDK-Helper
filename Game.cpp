@@ -49,7 +49,7 @@ void Game::Initialize(HWND window, int width, int height)
 	m_backColor = { 1,1,1,1 };
 	m_eye = { 0,70,500 };
 
-	m_model = std::make_unique<FBXSDK_Helper::FBX_Model>();
+	m_model = std::make_unique<FBXSDK_Helper::FBX_AnimationModel>();
 	m_model->Create(window, device, context,m_deviceResources->GetRenderTargetView(), "Resources/Models/humanoid.fbx");
 }
 
