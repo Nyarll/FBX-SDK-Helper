@@ -14,6 +14,7 @@ void FBXSDK_Helper::FBX_Model::Draw(ID3D11DeviceContext1* context, DirectX::Simp
 	DirectX::SimpleMath::Matrix& view, DirectX::SimpleMath::Matrix& proj)
 {
 	// ƒpƒ‰ƒ[ƒ^‚Ìó‚¯“n‚µ
+
 	D3D11_MAPPED_SUBRESOURCE pdata;
 	CONSTANT_BUFFER cb;
 	cb.mWVP = DirectX::XMMatrixTranspose(world * view * proj);

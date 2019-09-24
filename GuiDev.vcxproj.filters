@@ -14,6 +14,9 @@
     <Filter Include="fbxsdk">
       <UniqueIdentifier>{06059855-ed41-4221-acdb-9a06127e189a}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Resources">
+      <UniqueIdentifier>{8213d38f-5f8c-4817-a641-5bc52fca5500}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="pch.h" />
@@ -51,6 +54,16 @@
     <ClInclude Include="fbxsdk\FBXModel.h">
       <Filter>fbxsdk</Filter>
     </ClInclude>
+    <ClInclude Include="fbxsdk\CFBXLoader.h">
+      <Filter>fbxsdk</Filter>
+    </ClInclude>
+    <ClInclude Include="fbxsdk\CFBXRendererDX.h">
+      <Filter>fbxsdk</Filter>
+    </ClInclude>
+    <ClInclude Include="fbxsdk\DDSTextureLoader.h">
+      <Filter>fbxsdk</Filter>
+    </ClInclude>
+    <ClInclude Include="Resource.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="pch.cpp" />
@@ -80,6 +93,15 @@
     <ClCompile Include="fbxsdk\FBXModel.cpp">
       <Filter>fbxsdk</Filter>
     </ClCompile>
+    <ClCompile Include="fbxsdk\CFBXLoader.cpp">
+      <Filter>fbxsdk</Filter>
+    </ClCompile>
+    <ClCompile Include="fbxsdk\CFBXRendererDX.cpp">
+      <Filter>fbxsdk</Filter>
+    </ClCompile>
+    <ClCompile Include="fbxsdk\DDSTextureLoader.cpp">
+      <Filter>fbxsdk</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="resource.rc" />
@@ -98,5 +120,8 @@
     <FxCompile Include="shader.hlsl">
       <Filter>fbxsdk</Filter>
     </FxCompile>
+    <FxCompile Include="simpleRenderInstancingVS.hlsl" />
+    <FxCompile Include="simpleRenderPS.hlsl" />
+    <FxCompile Include="simpleRenderVS.hlsl" />
   </ItemGroup>
 </Project>
