@@ -58,6 +58,8 @@ private:
     // Device resources.
     std::unique_ptr<DX::DeviceResources>    m_deviceResources;
 
+	ID3D11DepthStencilState*			m_depthStencilState;
+
     // Rendering loop timer.
     DX::StepTimer                           m_timer;
 

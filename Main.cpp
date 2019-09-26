@@ -4,7 +4,7 @@
 
 
 #include "pch.h"
-/**/
+/**
 
 #include <windows.h>
 #include <d3d11.h>
@@ -48,6 +48,7 @@ HRESULT InitWindow(HINSTANCE hInstance, int nCmdShow);
 HRESULT InitDevice();
 void CleanupDevice();
 LRESULT CALLBACK    WndProc(HWND, UINT, WPARAM, LPARAM);
+
 void Render();
 
 // 追加記述
@@ -63,8 +64,8 @@ char g_files[NUMBER_OF_MODELS][256] =
 {
 	//"Assets\\model1.fbx",
 	//"Assets\\model2.fbx",
-	"Resources/Models/sampleModel.fbx",
-	"Resources/Models/star.fbx",
+	"Resources/Models/test4.fbx",
+	"Resources/Models/star3.fbx",
 	"Assets\\model3.fbx",
 };
 
@@ -345,10 +346,7 @@ HRESULT InitApp()
 {
 	HRESULT hr = S_OK;
 
-	// FBXの読み取り
-	// 注：頂点バッファやインデックスバッファはこの時点で生成されるがInputLayoutは作成しない
-
-	for (DWORD i = 0; i<NUMBER_OF_MODELS; i++)
+	for (DWORD i = 0; i < NUMBER_OF_MODELS; i++)
 	{
 		g_pFbxDX11[i] = new FBX_LOADER::CFBXRenderDX11;
 		hr = g_pFbxDX11[i]->LoadFBX(g_files[i], g_pd3dDevice);
@@ -407,7 +405,7 @@ HRESULT InitApp()
 	UINT numElements = ARRAYSIZE(layout);
 
 	// Todo: InputLayoutの作成には頂点シェーダが必要なのでこんなタイミングでCreateするのをなんとかしたい
-	for (DWORD i = 0; i<NUMBER_OF_MODELS; i++)
+	for (DWORD i = 0; i < NUMBER_OF_MODELS; i++)
 	{
 		hr = g_pFbxDX11[i]->CreateInputLayout(g_pd3dDevice, pVSBlob->GetBufferPointer(), pVSBlob->GetBufferSize(), layout, numElements);
 	}
@@ -543,7 +541,7 @@ void CleanupApp()
 		g_pBlendState = nullptr;
 	}
 
-	for (DWORD i = 0; i<NUMBER_OF_MODELS; i++)
+	for (DWORD i = 0; i < NUMBER_OF_MODELS; i++)
 	{
 		if (g_pFbxDX11[i])
 		{
@@ -645,7 +643,7 @@ void SetMatrix()
 
 	SRVPerInstanceData*	pSrvInstanceData = (SRVPerInstanceData*)MappedResource.pData;
 
-	for (uint32_t i = 0; i<count; i++)
+	for (uint32_t i = 0; i < count; i++)
 	{
 		mat = XMMatrixTranslation(0, 0, i*60.0f + offset);
 		pSrvInstanceData[i].mWorld = (mat);
@@ -700,7 +698,7 @@ void Render()
 	//
 	// Clear the back buffer
 	//
-	float ClearColor[4] = { 0.0f, 0.125f, 0.3f, 1.0f }; // red, green, blue, alpha
+	float ClearColor[4] = { 1.0f, 1.0f, 1.0f, 1.0f }; // red, green, blue, alpha
 	g_pImmediateContext->ClearRenderTargetView(g_pRenderTargetView, ClearColor);
 	//
 	// Clear the depth buffer to 1.0 (max depth)
@@ -713,7 +711,7 @@ void Render()
 	g_pImmediateContext->OMSetDepthStencilState(g_pDepthStencilState, 0);
 
 	// モデルを順番に描画
-	for (DWORD i = 0; i<NUMBER_OF_MODELS; i++)
+	for (DWORD i = 0; i < NUMBER_OF_MODELS; i++)
 	{
 		// FBX Modelのnode数を取得
 		size_t nodeCount = g_pFbxDX11[i]->GetNodeCount();
@@ -724,7 +722,7 @@ void Render()
 		g_pImmediateContext->PSSetShader(g_ppsFBX, NULL, 0);
 
 		// 全ノードを描画
-		for (size_t j = 0; j<nodeCount; j++)
+		for (size_t j = 0; j < nodeCount; j++)
 		{
 
 			XMMATRIX mLocal;
@@ -746,20 +744,23 @@ void Render()
 
 			SetMatrix();
 
-			FBX_LOADER::MATERIAL_DATA material = g_pFbxDX11[i]->GetNodeMaterial(j);
+			auto mate = g_pFbxDX11[i]->GetNodeMaterial(j);
 
-			if (material.pMaterialCb)
-				g_pImmediateContext->UpdateSubresource(material.pMaterialCb, 0, NULL, &material.materialConstantData, 0, 0);
+			for (auto& material : mate)
+			{
+				if (material.pMaterialCb)
+					g_pImmediateContext->UpdateSubresource(material.pMaterialCb, 0, NULL, &material.materialConstantData, 0, 0);
 
-			g_pImmediateContext->VSSetShaderResources(0, 1, &g_pTransformSRV);
-			g_pImmediateContext->PSSetShaderResources(0, 1, &material.pSRV);
-			g_pImmediateContext->PSSetConstantBuffers(0, 1, &material.pMaterialCb);
-			g_pImmediateContext->PSSetSamplers(0, 1, &material.pSampler);
+				g_pImmediateContext->VSSetShaderResources(0, 1, &g_pTransformSRV);
+				g_pImmediateContext->PSSetShaderResources(0, 1, &material.pSRV);
+				g_pImmediateContext->PSSetConstantBuffers(0, 1, &material.pMaterialCb);
+				g_pImmediateContext->PSSetSamplers(0, 1, &material.pSampler);
 
-			if (g_bInstancing)
-				g_pFbxDX11[i]->RenderNodeInstancing(g_pImmediateContext, j, g_InstanceMAX);
-			else
-				g_pFbxDX11[i]->RenderNode(g_pImmediateContext, j);
+				if (g_bInstancing)
+					g_pFbxDX11[i]->RenderNodeInstancing(g_pImmediateContext, j, g_InstanceMAX);
+				else
+					g_pFbxDX11[i]->RenderNode(g_pImmediateContext, j);
+			}
 		}
 	}
 
@@ -786,7 +787,7 @@ void Render()
 }
 /**/
 
-/**
+/**/
 #include "Game.h"
 
 using namespace DirectX;

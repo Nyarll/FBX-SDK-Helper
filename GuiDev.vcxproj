@@ -169,6 +169,7 @@
     <ClInclude Include="fbxsdk\CFBXRendererDX.h" />
     <ClInclude Include="fbxsdk\DDSTextureLoader.h" />
     <ClInclude Include="fbxsdk\FBXModel.h" />
+    <ClInclude Include="fbxsdk\Resource.h" />
     <ClInclude Include="Game.h" />
     <ClInclude Include="Gui\imconfig.h" />
     <ClInclude Include="Gui\imgui.h" />
@@ -179,7 +180,6 @@
     <ClInclude Include="Gui\imstb_textedit.h" />
     <ClInclude Include="Gui\imstb_truetype.h" />
     <ClInclude Include="pch.h" />
-    <ClInclude Include="Resource.h" />
     <ClInclude Include="StepTimer.h" />
   </ItemGroup>
   <ItemGroup>

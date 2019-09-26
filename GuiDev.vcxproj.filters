@@ -63,7 +63,9 @@
     <ClInclude Include="fbxsdk\DDSTextureLoader.h">
       <Filter>fbxsdk</Filter>
     </ClInclude>
-    <ClInclude Include="Resource.h" />
+    <ClInclude Include="fbxsdk\Resource.h">
+      <Filter>fbxsdk</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="pch.cpp" />

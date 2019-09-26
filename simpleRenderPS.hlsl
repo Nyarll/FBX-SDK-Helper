@@ -18,10 +18,12 @@ struct PS_INPUT
 
 float4 PS( PS_INPUT input) : SV_Target
 {
+	float4 red = { 1.0f, 0.0f, 0.0f, 1.0f };
+	float4 black = { 0,0,0,1.0f };
 	// テクスチャがないやつは表示されない
 	//return txDiffuse.Sample( samLinear, input.Tex );
 	
-	return input.Pos;	// オブジェクトは白くなる
+	//return input.Pos;	// オブジェクトは白くなる
 
 	// オブジェクトは黒くなる
 	//return ambient;
@@ -29,4 +31,8 @@ float4 PS( PS_INPUT input) : SV_Target
 
 	// マテリアルの色
 	//return emmisive;
+
+	return black;
+	
+	//return ambient + diffuse + emmisive;
 }

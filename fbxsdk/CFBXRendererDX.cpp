@@ -76,7 +76,10 @@ namespace FBX_LOADER
 			memcpy(meshNode.mat4x4, fbxNode.mat4x4, sizeof(float) * 16);
 
 			// <マテリアル>
-			MaterialConstruction(pd3dDevice, fbxNode, meshNode);
+			if (E_FAIL == MaterialConstruction(pd3dDevice, fbxNode, meshNode))
+			{
+				//MessageBoxW(NULL, L"Not Found Material.", TEXT("Debug Message Box"), MB_ICONINFORMATION);
+			}
 
 			m_meshNodeArray.push_back(meshNode);
 		}
@@ -184,67 +187,72 @@ namespace FBX_LOADER
 
 		HRESULT hr = S_OK;
 
-		// <今回は先頭のマテリアルだけ使う>
-		FBX_MATERIAL_NODE fbxMaterial = fbxNode.m_materialArray[0];
-		meshNode.materialData.specularPower = fbxMaterial.shininess;
-		meshNode.materialData.TransparencyFactor = fbxMaterial.TransparencyFactor;
-
-		meshNode.materialData.ambient
-			= DirectX::XMFLOAT4(fbxMaterial.ambient.r, fbxMaterial.ambient.g, fbxMaterial.ambient.b, fbxMaterial.ambient.a);
-		meshNode.materialData.diffuse
-			= DirectX::XMFLOAT4(fbxMaterial.diffuse.r, fbxMaterial.diffuse.g, fbxMaterial.diffuse.b, fbxMaterial.diffuse.a);
-		meshNode.materialData.specular
-			= DirectX::XMFLOAT4(fbxMaterial.specular.r, fbxMaterial.specular.g, fbxMaterial.specular.b, fbxMaterial.specular.a);
-		meshNode.materialData.emmisive
-			= DirectX::XMFLOAT4(fbxMaterial.emmisive.r, fbxMaterial.emmisive.g, fbxMaterial.emmisive.b, fbxMaterial.emmisive.a);
-
-
-		// <Diffuseだけからテクスチャを読み込む>
-		if (fbxMaterial.diffuse.textureSetArray.size() > 0)
+		for (int i = 0; i < fbxNode.m_materialArray.size(); i++)
 		{
-			TextureSet::const_iterator it = fbxMaterial.diffuse.textureSetArray.begin();
-			if (it->second.size())
+			//
+			FBX_MATERIAL_NODE fbxMaterial = fbxNode.m_materialArray[i];
+			FBX_LOADER::MATERIAL_DATA materialData;
+			materialData.specularPower = fbxMaterial.shininess;
+			materialData.TransparencyFactor = fbxMaterial.TransparencyFactor;
+
+			materialData.ambient
+				= DirectX::XMFLOAT4(fbxMaterial.ambient.r, fbxMaterial.ambient.g, fbxMaterial.ambient.b, fbxMaterial.ambient.a);
+			materialData.diffuse
+				= DirectX::XMFLOAT4(fbxMaterial.diffuse.r, fbxMaterial.diffuse.g, fbxMaterial.diffuse.b, fbxMaterial.diffuse.a);
+			materialData.specular
+				= DirectX::XMFLOAT4(fbxMaterial.specular.r, fbxMaterial.specular.g, fbxMaterial.specular.b, fbxMaterial.specular.a);
+			materialData.emmisive
+				= DirectX::XMFLOAT4(fbxMaterial.emmisive.r, fbxMaterial.emmisive.g, fbxMaterial.emmisive.b, fbxMaterial.emmisive.a);
+
+
+			// <Diffuseだけからテクスチャを読み込む>
+			if (fbxMaterial.diffuse.textureSetArray.size() > 0)
 			{
-				std::string path = it->second[0];
-		
-				// June 2010の時から変更
-				// hr = D3DX11CreateShaderResourceViewFromFileA( pd3dDevice,path.c_str(), NULL, NULL, &meshNode.materialData.pSRV, NULL );
-		
-				// Todo: 暫定対応
-				// FBX SDK -> 文字列 : char こちらではwcharにしないといけない
-				WCHAR	wstr[512];
-				size_t wLen = 0;
-				mbstowcs_s(&wLen, wstr, path.size() + 1, path.c_str(), _TRUNCATE);
-				CreateDDSTextureFromFile(pd3dDevice, wstr, NULL, &meshNode.materialData.pSRV, 0);
+				TextureSet::const_iterator it = fbxMaterial.diffuse.textureSetArray.begin();
+				if (it->second.size())
+				{
+					std::string path = it->second[0];
+
+					// June 2010の時から変更
+					// hr = D3DX11CreateShaderResourceViewFromFileA( pd3dDevice,path.c_str(), NULL, NULL, &meshNode.materialData.pSRV, NULL );
+
+					// Todo: 暫定対応
+					// FBX SDK -> 文字列 : char こちらではwcharにしないといけない
+					WCHAR	wstr[512];
+					size_t wLen = 0;
+					mbstowcs_s(&wLen, wstr, path.size() + 1, path.c_str(), _TRUNCATE);
+					CreateDDSTextureFromFile(pd3dDevice, wstr, NULL, &materialData.pSRV, 0);
+				}
 			}
+
+			// <samplerstate>
+			D3D11_SAMPLER_DESC sampDesc;
+			ZeroMemory(&sampDesc, sizeof(sampDesc));
+			sampDesc.Filter = D3D11_FILTER_MIN_MAG_MIP_LINEAR;
+			sampDesc.AddressU = D3D11_TEXTURE_ADDRESS_WRAP;
+			sampDesc.AddressV = D3D11_TEXTURE_ADDRESS_WRAP;
+			sampDesc.AddressW = D3D11_TEXTURE_ADDRESS_WRAP;
+			sampDesc.ComparisonFunc = D3D11_COMPARISON_NEVER;
+			sampDesc.MinLOD = 0;
+			sampDesc.MaxLOD = D3D11_FLOAT32_MAX;
+			hr = pd3dDevice->CreateSamplerState(&sampDesc, &materialData.pSampler);
+
+			// <material Constant Buffer>
+			D3D11_BUFFER_DESC bufDesc;
+			ZeroMemory(&bufDesc, sizeof(bufDesc));
+			bufDesc.ByteWidth = sizeof(MATERIAL_CONSTANT_DATA);
+			bufDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
+			bufDesc.CPUAccessFlags = 0;
+
+			hr = pd3dDevice->CreateBuffer(&bufDesc, NULL, &materialData.pMaterialCb);
+
+			materialData.materialConstantData.ambient = materialData.ambient;
+			materialData.materialConstantData.diffuse = materialData.ambient;
+			materialData.materialConstantData.specular = materialData.specular;
+			materialData.materialConstantData.emmisive = materialData.emmisive;
+
+			meshNode.materialData.push_back(materialData);
 		}
-
-		// <samplerstate>
-		D3D11_SAMPLER_DESC sampDesc;
-		ZeroMemory(&sampDesc, sizeof(sampDesc));
-		sampDesc.Filter = D3D11_FILTER_MIN_MAG_MIP_LINEAR;
-		sampDesc.AddressU = D3D11_TEXTURE_ADDRESS_WRAP;
-		sampDesc.AddressV = D3D11_TEXTURE_ADDRESS_WRAP;
-		sampDesc.AddressW = D3D11_TEXTURE_ADDRESS_WRAP;
-		sampDesc.ComparisonFunc = D3D11_COMPARISON_NEVER;
-		sampDesc.MinLOD = 0;
-		sampDesc.MaxLOD = D3D11_FLOAT32_MAX;
-		hr = pd3dDevice->CreateSamplerState(&sampDesc, &meshNode.materialData.pSampler);
-
-		// <material Constant Buffer>
-		D3D11_BUFFER_DESC bufDesc;
-		ZeroMemory(&bufDesc, sizeof(bufDesc));
-		bufDesc.ByteWidth = sizeof(MATERIAL_CONSTANT_DATA);
-		bufDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
-		bufDesc.CPUAccessFlags = 0;
-
-		hr = pd3dDevice->CreateBuffer(&bufDesc, NULL, &meshNode.materialData.pMaterialCb);
-
-		meshNode.materialData.materialConstantData.ambient = meshNode.materialData.ambient;
-		meshNode.materialData.materialConstantData.diffuse = meshNode.materialData.ambient;
-		meshNode.materialData.materialConstantData.specular = meshNode.materialData.specular;
-		meshNode.materialData.materialConstantData.emmisive = meshNode.materialData.emmisive;
-
 
 		return hr;
 	}

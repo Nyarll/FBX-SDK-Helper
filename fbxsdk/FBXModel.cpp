@@ -1,402 +1,312 @@
-
 #include "FBXModel.h"
 
-FBXSDK_Helper::FBX_Model::FBX_Model()
+HRESULT CompileShaderFromFile(WCHAR* szFileName, LPCSTR szEntryPoint, LPCSTR szShaderModel, ID3DBlob** ppBlobOut)
 {
+	HRESULT hr = S_OK;
+
+	DWORD dwShaderFlags = D3DCOMPILE_ENABLE_STRICTNESS;
+#if defined( DEBUG ) || defined( _DEBUG )
+	// Set the D3DCOMPILE_DEBUG flag to embed debug information in the shaders.
+	// Setting this flag improves the shader debugging experience, but still allows 
+	// the shaders to be optimized and to run exactly the way they will run in 
+	// the release configuration of this program.
+	dwShaderFlags |= D3DCOMPILE_DEBUG;
+#endif
+
+	ID3DBlob* pErrorBlob;
+	hr = D3DCompileFromFile(szFileName, NULL, NULL, szEntryPoint, szShaderModel,
+		dwShaderFlags, 0, ppBlobOut, &pErrorBlob);
+	if (FAILED(hr))
+	{
+		if (pErrorBlob != NULL)
+			OutputDebugStringA((char*)pErrorBlob->GetBufferPointer());
+		if (pErrorBlob) pErrorBlob->Release();
+		return hr;
+	}
+	if (pErrorBlob) pErrorBlob->Release();
+
+	return S_OK;
 }
 
-FBXSDK_Helper::FBX_Model::~FBX_Model()
+HRESULT FBXSDK_Helper::FBX_Model::InitApp(
+	ID3D11Device* device,
+	ID3D11DeviceContext* context,
+	const char* file_name)
 {
-	Destroy();
-}
+	HRESULT hr = S_OK;
 
-void FBXSDK_Helper::FBX_Model::Draw(ID3D11DeviceContext1* context, DirectX::SimpleMath::Matrix& world,
-	DirectX::SimpleMath::Matrix& view, DirectX::SimpleMath::Matrix& proj)
-{
-	// パラメータの受け渡し
+	m_model = std::make_unique<FBX_LOADER::CFBXRenderDX11>();
+	hr = m_model->LoadFBX(file_name, device);
 
-	D3D11_MAPPED_SUBRESOURCE pdata;
-	CONSTANT_BUFFER cb;
-	cb.mWVP = DirectX::XMMatrixTranspose(world * view * proj);
-	context->Map(m_constantBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &pdata);
-	memcpy_s(pdata.pData, pdata.RowPitch, (void*)(&cb), sizeof(cb));
-	context->Unmap(m_constantBuffer, 0);
+	if (FAILED(hr))
+	{
+		MessageBox(NULL,
+			L"FBX Error", L"Error", MB_OK);
+		return hr;
+	}
 
-	// 描画実行
-	context->DrawIndexed(m_mesh->GetPolygonVertexCount(), 0, 0);
-}
+	// Compile the vertex shader
+	ID3DBlob* pVSBlob = NULL;
+	hr = CompileShaderFromFile(L"simpleRenderVS.hlsl", "vs_main", "vs_4_0", &pVSBlob);
+	if (FAILED(hr))
+	{
+		MessageBox(NULL,
+			L"The FX file cannot be compiled.  Please run this executable from the directory that contains the FX file.", L"Error", MB_OK);
+		return hr;
+	}
 
-void FBXSDK_Helper::FBX_Model::Create(
-	HWND hwnd,
-	ID3D11Device1* device,
-	ID3D11DeviceContext1* context,
-	ID3D11RenderTargetView* renderTargetView,
-	const char* fbxfile_path)
-{
-	// <パイプライン準備>
-	RECT csize;
-	GetClientRect(hwnd, &csize);
-	int CWIDTH = csize.right;
-	int CHEIGHT = csize.bottom;
+	// Create the vertex shader
+	hr = device->CreateVertexShader(pVSBlob->GetBufferPointer(), pVSBlob->GetBufferSize(), NULL, &m_vertexShader);
+	if (FAILED(hr))
+	{
+		pVSBlob->Release();
+		return hr;
+	}
 
-	// <ビューポートの設定>
-	D3D11_VIEWPORT vp;
-	vp.Width = CWIDTH;
-	vp.Height = CHEIGHT;
-	vp.MinDepth = 0.0f;
-	vp.MaxDepth = 1.0f;
-	vp.TopLeftX = 0;
-	vp.TopLeftY = 0;
-
-	// <シェーダの設定>
-	ID3DBlob *pCompileVS = NULL;
-	ID3DBlob *pCompilePS = NULL;
-	D3DCompileFromFile(L"shader.hlsl", NULL, NULL, "VS", "vs_5_0", NULL, 0, &pCompileVS, NULL);
-	assert(pCompileVS && "pCompileVS is nullptr !");
-	device->CreateVertexShader(pCompileVS->GetBufferPointer(), pCompileVS->GetBufferSize(), NULL, &pVertexShader);
-	D3DCompileFromFile(L"shader.hlsl", NULL, NULL, "PS", "ps_5_0", NULL, 0, &pCompilePS, NULL);
-	assert(pCompileVS && "pCompilePS is nullptr !");
-	device->CreatePixelShader(pCompilePS->GetBufferPointer(), pCompilePS->GetBufferSize(), NULL, &pPixelShader);
-
-	// <頂点レイアウト>
-	D3D11_INPUT_ELEMENT_DESC layout[] = {
+	// Define the input layout
+	D3D11_INPUT_ELEMENT_DESC layout[] =
+	{
 		{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0 },
+		{ "NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 },
+		{ "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 },
 	};
-	device->CreateInputLayout(layout, 1, pCompileVS->GetBufferPointer(), pCompileVS->GetBufferSize(), &pVertexLayout);
-	pCompileVS->Release();
-	pCompilePS->Release();
+	UINT numElements = ARRAYSIZE(layout);
 
-	// <定数バッファの設定>
-	D3D11_BUFFER_DESC cb;
-	cb.ByteWidth = sizeof(CONSTANT_BUFFER);
-	cb.Usage = D3D11_USAGE_DYNAMIC;
-	cb.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
-	cb.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
-	cb.MiscFlags = 0;
-	cb.StructureByteStride = 0;
-	device->CreateBuffer(&cb, NULL, &m_constantBuffer);
+	// Todo: InputLayoutの作成には頂点シェーダが必要なのでこんなタイミングでCreateするのをなんとかしたい
 
-	// <FBX読み込み>
-	FBX_Import(fbxfile_path);
-	// <頂点データの取り出し>
-	FBX_GetVertex();
-	// <頂点データ用バッファの設定>
-	FBX_SetVertexData(device);
+	hr = m_model->CreateInputLayout(device, pVSBlob->GetBufferPointer(), pVSBlob->GetBufferSize(), layout, numElements);
 
-	// <ラスタライザの設定>
-	D3D11_RASTERIZER_DESC rdc = {};
-	rdc.CullMode = D3D11_CULL_BACK;
-	rdc.FillMode = D3D11_FILL_SOLID;
-	rdc.FrontCounterClockwise = TRUE;
-	device->CreateRasterizerState(&rdc, &pRasterizerState);
+	pVSBlob->Release();
+	if (FAILED(hr))
+		return hr;
 
-	// <オブジェクトの反映>
-	UINT stride = sizeof(VERTEX);
-	UINT offset = 0;
-	context->IASetVertexBuffers(0, 1, &VerBuffer, &stride, &offset);
-	context->IASetIndexBuffer(IndBuffer, DXGI_FORMAT_R32_UINT, 0);
-	context->IASetInputLayout(pVertexLayout);
-	context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-	context->VSSetConstantBuffers(0, 1, &m_constantBuffer);
-	context->PSSetConstantBuffers(0, 1, &m_constantBuffer);
-	context->VSSetShader(pVertexShader, NULL, 0);
-	context->PSSetShader(pPixelShader, NULL, 0);
-	context->RSSetState(pRasterizerState);
-	context->OMSetRenderTargets(1, &renderTargetView, NULL);
-	context->RSSetViewports(1, &vp);
-}
-
-void FBXSDK_Helper::FBX_Model::Destroy()
-{
-	pRasterizerState->Release();
-	pVertexShader->Release();
-	pVertexLayout->Release();
-	pPixelShader->Release();
-	m_constantBuffer->Release();
-
-	m_fbxScene->Destroy();
-	m_fbxManager->Destroy();
-	VerBuffer->Release();
-	if (vertices)
+	// Compile the pixel shader
+	ID3DBlob* pPSBlob = NULL;
+	hr = CompileShaderFromFile(L"simpleRenderPS.hlsl", "PS", "ps_4_0", &pPSBlob);
+	if (FAILED(hr))
 	{
-		delete[] vertices;
+		MessageBox(NULL,
+			L"The FX file cannot be compiled.  Please run this executable from the directory that contains the FX file.", L"Error", MB_OK);
+		return hr;
 	}
+
+	// Create the pixel shader
+	hr = device->CreatePixelShader(pPSBlob->GetBufferPointer(), pPSBlob->GetBufferSize(), NULL, &m_pixelShader);
+	pPSBlob->Release();
+	if (FAILED(hr))
+		return hr;
+
+	// Create Constant Buffer
+	D3D11_BUFFER_DESC bd;
+	ZeroMemory(&bd, sizeof(bd));
+	bd.Usage = D3D11_USAGE_DYNAMIC;
+	bd.ByteWidth = sizeof(CBFBXMATRIX);
+	bd.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
+	bd.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
+	hr = device->CreateBuffer(&bd, NULL, &m_pcBuffer);
+	if (FAILED(hr))
+		return hr;
+
+	//
+	D3D11_RASTERIZER_DESC rsDesc;
+	ZeroMemory(&rsDesc, sizeof(D3D11_RASTERIZER_DESC));
+	rsDesc.FillMode = D3D11_FILL_SOLID;
+	rsDesc.CullMode = D3D11_CULL_BACK;
+	rsDesc.FrontCounterClockwise = false;
+	rsDesc.DepthClipEnable = FALSE;
+	device->CreateRasterizerState(&rsDesc, &m_pRS);
+	context->RSSetState(m_pRS);
+
+	D3D11_BLEND_DESC blendDesc;
+	ZeroMemory(&blendDesc, sizeof(D3D11_BLEND_DESC));
+	blendDesc.AlphaToCoverageEnable = false;
+	blendDesc.IndependentBlendEnable = false;
+	blendDesc.RenderTarget[0].BlendEnable = true;
+	blendDesc.RenderTarget[0].SrcBlend = D3D11_BLEND_SRC_ALPHA;
+	blendDesc.RenderTarget[0].DestBlend = D3D11_BLEND_INV_SRC_ALPHA;
+	blendDesc.RenderTarget[0].BlendOp = D3D11_BLEND_OP_ADD;
+	blendDesc.RenderTarget[0].SrcBlendAlpha = D3D11_BLEND_ZERO;      ///tryed D3D11_BLEND_ONE ... (and others desperate combinations ... )
+	blendDesc.RenderTarget[0].DestBlendAlpha = D3D11_BLEND_ZERO;     ///tryed D3D11_BLEND_ONE ... (and others desperate combinations ... )
+	blendDesc.RenderTarget[0].BlendOpAlpha = D3D11_BLEND_OP_ADD;
+	blendDesc.RenderTarget[0].RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL;
+
+	device->CreateBlendState(&blendDesc, &m_blendState);
+
+	// SpriteBatch
+	//g_pSpriteBatch = new DirectX::SpriteBatch(g_pImmediateContext);
+	// SpriteFont
+	//g_pFont = new DirectX::SpriteFont(g_pd3dDevice, L"Assets\\Arial.spritefont");
+
+	return hr;
 }
 
-void FBXSDK_Helper::FBX_Model::FBX_Import(const char* fbxfile_path)
+void FBXSDK_Helper::FBX_Model::CleanupApp()
 {
-	// <FBX読み込み>
-	m_fbxManager = FbxManager::Create();
-	m_fbxScene = FbxScene::Create(m_fbxManager, "fbxscene");
-	FbxString FileName(fbxfile_path);
-	FbxImporter *fbxImporter = FbxImporter::Create(m_fbxManager, "imp");
-	fbxImporter->Initialize(FileName.Buffer(), -1, m_fbxManager->GetIOSettings());
-	fbxImporter->Import(m_fbxScene);
-	fbxImporter->Destroy();
-}
-
-void FBXSDK_Helper::FBX_Model::FBX_GetVertex()
-{
-	// <頂点データの取り出し>
-	for (int i = 0; i < m_fbxScene->GetRootNode()->GetChildCount(); i++) {
-		if (m_fbxScene->GetRootNode()->GetChild(i)->GetNodeAttribute()->GetAttributeType() == FbxNodeAttribute::eMesh) {
-			m_mesh = m_fbxScene->GetRootNode()->GetChild(i)->GetMesh();
-			break;
-		}
-	}
-	vertices = new VERTEX[m_mesh->GetControlPointsCount()];
-	for (int i = 0; i < m_mesh->GetControlPointsCount(); i++) {
-		vertices[i].Pos.x = (FLOAT)m_mesh->GetControlPointAt(i)[0];
-		vertices[i].Pos.y = (FLOAT)m_mesh->GetControlPointAt(i)[1];
-		vertices[i].Pos.z = (FLOAT)m_mesh->GetControlPointAt(i)[2];
-	}
-}
-
-void FBXSDK_Helper::FBX_Model::FBX_SetVertexData(ID3D11Device1* device)
-{
+	if (m_transformSRV)
 	{
-		D3D11_BUFFER_DESC bd_vertex;
-		bd_vertex.ByteWidth = sizeof(VERTEX) * m_mesh->GetControlPointsCount();
-		bd_vertex.Usage = D3D11_USAGE_DEFAULT;
-		bd_vertex.BindFlags = D3D11_BIND_VERTEX_BUFFER;
-		bd_vertex.CPUAccessFlags = 0;
-		bd_vertex.MiscFlags = 0;
-		bd_vertex.StructureByteStride = 0;
-		D3D11_SUBRESOURCE_DATA data_vertex;
-		data_vertex.pSysMem = vertices;
-		device->CreateBuffer(&bd_vertex, &data_vertex, &VerBuffer);
-
-		// インデックスデータの取り出しとバッファの設定
-		D3D11_BUFFER_DESC bd_index;
-		bd_index.ByteWidth = sizeof(unsigned int) * m_mesh->GetPolygonVertexCount();
-		bd_index.Usage = D3D11_USAGE_DEFAULT;
-		bd_index.BindFlags = D3D11_BIND_INDEX_BUFFER;
-		bd_index.CPUAccessFlags = 0;
-		bd_index.MiscFlags = 0;
-		bd_index.StructureByteStride = 0;
-		D3D11_SUBRESOURCE_DATA data_index;
-		data_index.pSysMem = m_mesh->GetPolygonVertices();
-		device->CreateBuffer(&bd_index, &data_index, &IndBuffer);
+		delete m_transformSRV;
+		m_transformSRV = nullptr;
 	}
-}
-
-
-FBXSDK_Helper::FBX_AnimationModel::FBX_AnimationModel()
-{
-}
-
-FBXSDK_Helper::FBX_AnimationModel::~FBX_AnimationModel()
-{
-	Destroy();
-}
-
-void FBXSDK_Helper::FBX_AnimationModel::Draw(ID3D11DeviceContext1 * context,
-	DirectX::SimpleMath::Matrix& world, DirectX::SimpleMath::Matrix& view, DirectX::SimpleMath::Matrix& proj)
-{
-	// ----- Animation -----
-	timeCount += FrameTime;
-	if (timeCount > stop) timeCount = start;
-
-	// 移動、回転、拡大のための行列を作成
-	FbxMatrix globalPosition = m_meshNode->EvaluateGlobalTransform(timeCount);
-	FbxVector4 t0 = m_meshNode->GetGeometricTranslation(FbxNode::eSourcePivot);
-	FbxVector4 r0 = m_meshNode->GetGeometricRotation(FbxNode::eSourcePivot);
-	FbxVector4 s0 = m_meshNode->GetGeometricScaling(FbxNode::eSourcePivot);
-	FbxAMatrix geometryOffset = FbxAMatrix(t0, r0, s0);
-
-	// 各頂点に掛けるための最終的な行列の配列
-	FbxMatrix *clusterDeformation = new FbxMatrix[m_mesh->GetControlPointsCount()];
-	memset(clusterDeformation, 0, sizeof(FbxMatrix) * m_mesh->GetControlPointsCount());
-
-	FbxSkin *skinDeformer = (FbxSkin *)m_mesh->GetDeformer(0, FbxDeformer::eSkin);
-	int clusterCount = skinDeformer->GetClusterCount();
-	// 各クラスタから各頂点に影響を与えるための行列作成
-	for (int clusterIndex = 0; clusterIndex < clusterCount; clusterIndex++) {
-		// クラスタ(ボーン)の取り出し
-		FbxCluster *cluster = skinDeformer->GetCluster(clusterIndex);
-		FbxMatrix vertexTransformMatrix;
-		FbxAMatrix referenceGlobalInitPosition;
-		FbxAMatrix clusterGlobalInitPosition;
-		FbxMatrix clusterGlobalCurrentPosition;
-		FbxMatrix clusterRelativeInitPosition;
-		FbxMatrix clusterRelativeCurrentPositionInverse;
-		cluster->GetTransformMatrix(referenceGlobalInitPosition);
-		referenceGlobalInitPosition *= geometryOffset;
-		cluster->GetTransformLinkMatrix(clusterGlobalInitPosition);
-		clusterGlobalCurrentPosition = cluster->GetLink()->EvaluateGlobalTransform(timeCount);
-		clusterRelativeInitPosition = clusterGlobalInitPosition.Inverse() * referenceGlobalInitPosition;
-		clusterRelativeCurrentPositionInverse = globalPosition.Inverse() * clusterGlobalCurrentPosition;
-		vertexTransformMatrix = clusterRelativeCurrentPositionInverse * clusterRelativeInitPosition;
-		// 上で作った行列に各頂点毎の影響度(重み)を掛けてそれぞれに加算
-		for (int i = 0; i < cluster->GetControlPointIndicesCount(); i++) {
-			int index = cluster->GetControlPointIndices()[i];
-			double weight = cluster->GetControlPointWeights()[i];
-			FbxMatrix influence = vertexTransformMatrix * weight;
-			clusterDeformation[index] += influence;
-		}
-	}
-
-	// 最終的な頂点座標を計算しVERTEXに変換
-	for (int i = 0; i < m_mesh->GetControlPointsCount(); i++) {
-		FbxVector4 outVertex = clusterDeformation[i].MultNormalize(m_mesh->GetControlPointAt(i));
-		vertices[i].Pos.x = (FLOAT)outVertex[0];
-		vertices[i].Pos.y = (FLOAT)outVertex[1];
-		vertices[i].Pos.z = (FLOAT)outVertex[2];
-	}
-
-	delete[] clusterDeformation;
-	// ---------------------
-
-
-	D3D11_MAPPED_SUBRESOURCE pdata;
-	CONSTANT_BUFFER cb;
-	// パラメータの受け渡し(定数)
-	cb.mWVP = DirectX::XMMatrixTranspose(world * view * proj);
-	context->Map(m_constantBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &pdata);
-	memcpy_s(pdata.pData, pdata.RowPitch, (void*)(&cb), sizeof(cb));
-	context->Unmap(m_constantBuffer, 0);
-
-	// パラメータの受け渡し(頂点)
-	context->Map(VerBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &pdata);
-	memcpy_s(pdata.pData, pdata.RowPitch, (void*)(vertices), sizeof(VERTEX) * m_mesh->GetControlPointsCount());
-	context->Unmap(VerBuffer, 0);
-
-	// 描画実行
-	context->DrawIndexed(m_mesh->GetPolygonVertexCount(), 0, 0);
-
-}
-
-void FBXSDK_Helper::FBX_AnimationModel::Create(HWND hwnd, ID3D11Device1 * device, ID3D11DeviceContext1 * context, ID3D11RenderTargetView * renderTargetView, const char * fbxfile_path)
-{
-	// <パイプライン準備>
-	RECT csize;
-	GetClientRect(hwnd, &csize);
-	int CWIDTH = csize.right;
-	int CHEIGHT = csize.bottom;
-
-	// <ビューポートの設定>
-	D3D11_VIEWPORT vp;
-	vp.Width = CWIDTH;
-	vp.Height = CHEIGHT;
-	vp.MinDepth = 0.0f;
-	vp.MaxDepth = 1.0f;
-	vp.TopLeftX = 0;
-	vp.TopLeftY = 0;
-
-	// <シェーダの設定>
-	ID3DBlob *pCompileVS = NULL;
-	ID3DBlob *pCompilePS = NULL;
-	D3DCompileFromFile(L"shader.hlsl", NULL, NULL, "VS", "vs_5_0", NULL, 0, &pCompileVS, NULL);
-	assert(pCompileVS && "pCompileVS is nullptr !");
-	(device->CreateVertexShader(pCompileVS->GetBufferPointer(), pCompileVS->GetBufferSize(), NULL, &pVertexShader));
-	D3DCompileFromFile(L"shader.hlsl", NULL, NULL, "PS", "ps_5_0", NULL, 0, &pCompilePS, NULL);
-	assert(pCompileVS && "pCompilePS is nullptr !");
-	(device->CreatePixelShader(pCompilePS->GetBufferPointer(), pCompilePS->GetBufferSize(), NULL, &pPixelShader));
-
-	// <頂点レイアウト>
-	D3D11_INPUT_ELEMENT_DESC layout[] = {
-		{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0 },
-	};
-	(device->CreateInputLayout(layout, 1, pCompileVS->GetBufferPointer(), pCompileVS->GetBufferSize(), &pVertexLayout));
-	pCompileVS->Release();
-	pCompilePS->Release();
-
-	// <定数バッファの設定>
-	D3D11_BUFFER_DESC cb;
-	cb.ByteWidth = sizeof(CONSTANT_BUFFER);
-	cb.Usage = D3D11_USAGE_DYNAMIC;
-	cb.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
-	cb.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
-	cb.MiscFlags = 0;
-	cb.StructureByteStride = 0;
-	(device->CreateBuffer(&cb, NULL, &m_constantBuffer));
-
-	// <FBX読み込み>
-	FBX_Import(fbxfile_path);
-	// <頂点データの取り出し>
-	//FBX_GetVertex();
-	// <頂点データ用バッファの設定>
-	FBX_SetVertexData(device);
-
-	// <ラスタライザの設定>
-	D3D11_RASTERIZER_DESC rdc = {};
-	rdc.CullMode = D3D11_CULL_BACK;
-	rdc.FillMode = D3D11_FILL_SOLID;
-	rdc.FrontCounterClockwise = TRUE;
-	(device->CreateRasterizerState(&rdc, &pRasterizerState));
-
-	// <オブジェクトの反映>
-	UINT stride = sizeof(VERTEX);
-	UINT offset = 0;
-	context->IASetVertexBuffers(0, 1, &VerBuffer, &stride, &offset);
-	context->IASetIndexBuffer(IndBuffer, DXGI_FORMAT_R32_UINT, 0);
-	context->IASetInputLayout(pVertexLayout);
-	context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-	context->VSSetConstantBuffers(0, 1, &m_constantBuffer);
-	context->PSSetConstantBuffers(0, 1, &m_constantBuffer);
-	context->VSSetShader(pVertexShader, NULL, 0);
-	context->PSSetShader(pPixelShader, NULL, 0);
-	context->RSSetState(pRasterizerState);
-	context->OMSetRenderTargets(1, &renderTargetView, NULL);
-	context->RSSetViewports(1, &vp);
-}
-
-void FBXSDK_Helper::FBX_AnimationModel::FBX_Import(const char * fbxfile_path)
-{
-	// <FBX読み込み>
-	m_fbxManager = FbxManager::Create();
-	m_fbxScene = FbxScene::Create(m_fbxManager, "fbxscene");
-	FbxString FileName(fbxfile_path);
-	FbxImporter *fbxImporter = FbxImporter::Create(m_fbxManager, "imp");
-	fbxImporter->Initialize(FileName.Buffer(), -1, m_fbxManager->GetIOSettings());
-	fbxImporter->Import(m_fbxScene);
-	fbxImporter->Destroy();
-
-	FbxArray<FbxString*> AnimStackNameArray;
-	m_fbxScene->FillAnimStackNameArray(AnimStackNameArray);
-	FbxAnimStack *AnimationStack = m_fbxScene->FindMember<FbxAnimStack>(AnimStackNameArray[AnimStackNumber]->Buffer());
-	m_fbxScene->SetCurrentAnimationStack(AnimationStack);
-
-	FbxTakeInfo *takeInfo = m_fbxScene->GetTakeInfo(*(AnimStackNameArray[AnimStackNumber]));
-	start = takeInfo->mLocalTimeSpan.GetStart();
-	stop = takeInfo->mLocalTimeSpan.GetStop();
-	FrameTime.SetTime(0, 0, 0, 1, 0, m_fbxScene->GetGlobalSettings().GetTimeMode());
-	timeCount = start;
-
-	for (int i = 0; i < m_fbxScene->GetRootNode()->GetChildCount(); i++) {
-		if (m_fbxScene->GetRootNode()->GetChild(i)->GetNodeAttribute()->GetAttributeType() == FbxNodeAttribute::eMesh) {
-			m_meshNode = m_fbxScene->GetRootNode()->GetChild(i);
-			m_mesh = m_meshNode->GetMesh();
-			break;
-		}
-	}
-}
-
-void FBXSDK_Helper::FBX_AnimationModel::FBX_SetVertexData(ID3D11Device1 * device)
-{
+	if (m_transformStructuredBuffer)
 	{
-		D3D11_BUFFER_DESC bd_vertex;
-		bd_vertex.ByteWidth = sizeof(VERTEX) * m_mesh->GetControlPointsCount();
-		bd_vertex.Usage = D3D11_USAGE_DYNAMIC;
-		bd_vertex.BindFlags = D3D11_BIND_VERTEX_BUFFER;
-		bd_vertex.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
-		bd_vertex.MiscFlags = 0;
-		bd_vertex.StructureByteStride = 0;
-		if (FAILED(device->CreateBuffer(&bd_vertex, NULL, &VerBuffer))) {
-			assert(false && "Missing !");
-		}
-		vertices = new VERTEX[m_mesh->GetControlPointsCount()];
+		delete m_transformStructuredBuffer;
+		m_transformStructuredBuffer = nullptr;
+	}
+	if (m_blendState)
+	{
+		delete m_blendState;
+		m_blendState = nullptr;
+	}
+	m_model->Release();
+	m_model.reset();
 
-		// インデックスデータの取り出しとバッファの設定
-		D3D11_BUFFER_DESC bd_index;
-		bd_index.ByteWidth = sizeof(int) * m_mesh->GetPolygonVertexCount();
-		bd_index.Usage = D3D11_USAGE_DEFAULT;
-		bd_index.BindFlags = D3D11_BIND_INDEX_BUFFER;
-		bd_index.CPUAccessFlags = 0;
-		bd_index.MiscFlags = 0;
-		bd_index.StructureByteStride = 0;
-		D3D11_SUBRESOURCE_DATA data_index;
-		data_index.pSysMem = m_mesh->GetPolygonVertices();
-		(device->CreateBuffer(&bd_index, &data_index, &IndBuffer));
+	if (m_pcBuffer)
+	{
+		delete m_pcBuffer;
+		m_pcBuffer = nullptr;
+	}
+	if (m_pRS)
+	{
+		delete m_pRS;
+		m_pRS = nullptr;
+	}
+	if (m_vertexShader)
+	{
+		delete m_vertexShader;
+		m_vertexShader = nullptr;
+	}
+	if (m_pixelShader)
+	{
+		delete m_pixelShader;
+		m_pixelShader = nullptr;
+	}
+}
+
+HRESULT FBXSDK_Helper::FBX_Model::SetupTransformSRV(ID3D11Device* device)
+{
+	HRESULT hr = S_OK;
+
+	const uint32_t count = 32;
+	const uint32_t stride = static_cast<uint32_t>(sizeof(SRVPerInstanceData));
+
+	// Create StructuredBuffer
+	D3D11_BUFFER_DESC bd;
+	ZeroMemory(&bd, sizeof(bd));
+	bd.Usage = D3D11_USAGE_DYNAMIC;
+	bd.ByteWidth = stride * count;
+	bd.BindFlags = D3D11_BIND_SHADER_RESOURCE;
+	bd.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
+	bd.MiscFlags = D3D11_RESOURCE_MISC_BUFFER_STRUCTURED;
+	bd.StructureByteStride = stride;
+	hr = device->CreateBuffer(&bd, NULL, &m_transformStructuredBuffer);
+	if (FAILED(hr))
+		return hr;
+
+	// Create ShaderResourceView
+	D3D11_SHADER_RESOURCE_VIEW_DESC srvDesc;
+	ZeroMemory(&srvDesc, sizeof(D3D11_SHADER_RESOURCE_VIEW_DESC));
+	srvDesc.ViewDimension = D3D11_SRV_DIMENSION_BUFFEREX;   // 拡張されたバッファーであることを指定する
+	srvDesc.BufferEx.FirstElement = 0;
+	srvDesc.Format = DXGI_FORMAT_UNKNOWN;
+	srvDesc.BufferEx.NumElements = count;                  // リソース内の要素の数
+
+														   // 構造化バッファーをもとにシェーダーリソースビューを作成する
+	hr = device->CreateShaderResourceView(m_transformStructuredBuffer, &srvDesc, &m_transformSRV);
+	if (FAILED(hr))
+		return hr;
+
+	return hr;
+}
+
+void FBXSDK_Helper::FBX_Model::SetMatrix(ID3D11DeviceContext* context)
+{
+	HRESULT hr = S_OK;
+	const uint32_t count = 32U;
+	const float offset = -(32U * 60.0f / 2.0f);
+	DirectX::XMMATRIX mat;
+
+	D3D11_MAPPED_SUBRESOURCE MappedResource;
+	hr = context->Map(m_transformStructuredBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &MappedResource);
+
+	SRVPerInstanceData*	pSrvInstanceData = (SRVPerInstanceData*)MappedResource.pData;
+
+	for (uint32_t i = 0; i < count; i++)
+	{
+		mat = DirectX::XMMatrixTranslation(0, 0, i*60.0f + offset);
+		pSrvInstanceData[i].mWorld = (mat);
+	}
+
+	context->Unmap(m_transformStructuredBuffer, 0);
+}
+
+void FBXSDK_Helper::FBX_Model::Create(ID3D11Device * device, ID3D11DeviceContext * context, const char * fileName)
+{
+	if (FAILED(InitApp(device, context, fileName))) {}
+	if (FAILED(this->SetupTransformSRV(device))) {}
+}
+
+void FBXSDK_Helper::FBX_Model::Release()
+{
+	this->CleanupApp();
+}
+
+void FBXSDK_Helper::FBX_Model::Render(ID3D11DeviceContext* context,
+	ID3D11DepthStencilState* stencil_state,
+	const DirectX::SimpleMath::Matrix& world,
+	const DirectX::SimpleMath::Matrix& view,
+	const DirectX::SimpleMath::Matrix& proj)
+{
+	float blendFactors[4] = { D3D11_BLEND_ZERO, D3D11_BLEND_ZERO, D3D11_BLEND_ZERO, D3D11_BLEND_ZERO };
+	context->RSSetState(m_pRS);
+	context->OMSetBlendState(m_blendState, blendFactors, 0xffffffff);
+	context->OMSetDepthStencilState(stencil_state, 0);
+
+	// モデルを描画
+
+	// FBX Modelのnode数を取得
+	size_t nodeCount = m_model->GetNodeCount();
+
+	context->VSSetShader(m_vertexShader, NULL, 0);
+	context->VSSetConstantBuffers(0, 1, &m_pcBuffer);
+	context->PSSetShader(m_pixelShader, NULL, 0);
+
+	// 全ノードを描画
+	for (size_t j = 0; j < nodeCount; j++)
+	{
+
+		DirectX::XMMATRIX mLocal;
+		m_model->GetNodeMatrix(j, &mLocal.r[0].m128_f32[0]);	// このnodeのMatrix
+		DirectX::SimpleMath::Matrix local(mLocal);
+
+		D3D11_MAPPED_SUBRESOURCE MappedResource;
+		context->Map(m_pcBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &MappedResource);
+
+		CBFBXMATRIX*	cbFBX = (CBFBXMATRIX*)MappedResource.pData;
+
+		// 左手系
+		cbFBX->mWorld = (world);
+		cbFBX->mView = (view);
+		cbFBX->mProj = (proj);
+
+		cbFBX->mWVP = DirectX::XMMatrixTranspose(local * world * view * proj);
+
+		context->Unmap(m_pcBuffer, 0);
+
+		SetMatrix(context);
+
+		auto mate = m_model->GetNodeMaterial(j);
+
+		for (auto& material : mate)
+		{
+			if (material.pMaterialCb)
+				context->UpdateSubresource(material.pMaterialCb, 0, NULL, &material.materialConstantData, 0, 0);
+
+			context->VSSetShaderResources(0, 1, &m_transformSRV);
+			context->PSSetShaderResources(0, 1, &material.pSRV);
+			context->PSSetConstantBuffers(0, 1, &material.pMaterialCb);
+			context->PSSetSamplers(0, 1, &material.pSampler);
+
+			m_model->RenderNode(context, j);
+		}
 	}
 }

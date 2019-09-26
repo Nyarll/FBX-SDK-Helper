@@ -80,7 +80,7 @@ namespace FBX_LOADER
 		DWORD	vertexCount;
 		DWORD	indexCount;
 
-		MATERIAL_DATA materialData;
+		std::vector<MATERIAL_DATA> materialData;
 
 		float	mat4x4[16];
 
@@ -105,7 +105,11 @@ namespace FBX_LOADER
 
 		void Release()
 		{
-			materialData.Release();
+			for (auto& mate : materialData)
+			{
+				mate.Release();
+			}
+			materialData.clear();
 
 			if (m_pInputLayout)
 			{
@@ -173,7 +177,7 @@ namespace FBX_LOADER
 
 		MESH_NODE& GetNode(const int id) { return m_meshNodeArray[id]; };
 		void	GetNodeMatrix(const int id, float* mat4x4) { memcpy(mat4x4, m_meshNodeArray[id].mat4x4, sizeof(float) * 16); };
-		MATERIAL_DATA& GetNodeMaterial(const size_t id) { return m_meshNodeArray[id].materialData; };
+		std::vector<MATERIAL_DATA>& GetNodeMaterial(const size_t id) { return m_meshNodeArray[id].materialData; };
 	};
 }
 // FBX_LOADER

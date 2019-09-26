@@ -177,6 +177,7 @@ namespace FBX_LOADER
 		FbxNode& GetRootNode();
 
 		size_t GetNodesCount() { return m_meshNodeArray.size(); };
+		std::vector<FBX_MESH_NODE> GetMeshNodes() { return m_meshNodeArray; };
 
 		FBX_MESH_NODE& GetNode(const unsigned int id);
 	};
