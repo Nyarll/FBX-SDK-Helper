@@ -13,7 +13,6 @@
 #include "Gui/imgui_impl_dx11.h"
 #include "Gui/imgui_impl_win32.h"
 
-#include "fbxsdk/FBXModel.h"
 
 // A basic game implementation that creates a D3D11 device and
 // provides a game loop.
@@ -58,8 +57,6 @@ private:
     // Device resources.
     std::unique_ptr<DX::DeviceResources>    m_deviceResources;
 
-	ID3D11DepthStencilState*			m_depthStencilState;
-
     // Rendering loop timer.
     DX::StepTimer                           m_timer;
 
@@ -72,7 +69,6 @@ private:
 	float angleX = 0;
 	float addAngle = 0.f;
 
-	std::unique_ptr<FBXSDK_Helper::FBX_Model>	m_model;
 
 	DirectX::SimpleMath::Matrix m_view;
 	DirectX::SimpleMath::Matrix m_proj;

@@ -165,11 +165,6 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="DeviceResources.h" />
-    <ClInclude Include="fbxsdk\CFBXLoader.h" />
-    <ClInclude Include="fbxsdk\CFBXRendererDX.h" />
-    <ClInclude Include="fbxsdk\DDSTextureLoader.h" />
-    <ClInclude Include="fbxsdk\FBXModel.h" />
-    <ClInclude Include="fbxsdk\Resource.h" />
     <ClInclude Include="Game.h" />
     <ClInclude Include="Gui\imconfig.h" />
     <ClInclude Include="Gui\imgui.h" />
@@ -184,10 +179,6 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="DeviceResources.cpp" />
-    <ClCompile Include="fbxsdk\CFBXLoader.cpp" />
-    <ClCompile Include="fbxsdk\CFBXRendererDX.cpp" />
-    <ClCompile Include="fbxsdk\DDSTextureLoader.cpp" />
-    <ClCompile Include="fbxsdk\FBXModel.cpp" />
     <ClCompile Include="Game.cpp" />
     <ClCompile Include="Gui\imgui.cpp" />
     <ClCompile Include="Gui\imgui_demo.cpp" />

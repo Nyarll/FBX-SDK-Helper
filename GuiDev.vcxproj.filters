@@ -51,21 +51,6 @@
     <ClInclude Include="Gui\imstb_truetype.h">
       <Filter>Gui</Filter>
     </ClInclude>
-    <ClInclude Include="fbxsdk\FBXModel.h">
-      <Filter>fbxsdk</Filter>
-    </ClInclude>
-    <ClInclude Include="fbxsdk\CFBXLoader.h">
-      <Filter>fbxsdk</Filter>
-    </ClInclude>
-    <ClInclude Include="fbxsdk\CFBXRendererDX.h">
-      <Filter>fbxsdk</Filter>
-    </ClInclude>
-    <ClInclude Include="fbxsdk\DDSTextureLoader.h">
-      <Filter>fbxsdk</Filter>
-    </ClInclude>
-    <ClInclude Include="fbxsdk\Resource.h">
-      <Filter>fbxsdk</Filter>
-    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="pch.cpp" />
@@ -91,18 +76,6 @@
     </ClCompile>
     <ClCompile Include="Gui\imgui_widgets.cpp">
       <Filter>Gui</Filter>
-    </ClCompile>
-    <ClCompile Include="fbxsdk\FBXModel.cpp">
-      <Filter>fbxsdk</Filter>
-    </ClCompile>
-    <ClCompile Include="fbxsdk\CFBXLoader.cpp">
-      <Filter>fbxsdk</Filter>
-    </ClCompile>
-    <ClCompile Include="fbxsdk\CFBXRendererDX.cpp">
-      <Filter>fbxsdk</Filter>
-    </ClCompile>
-    <ClCompile Include="fbxsdk\DDSTextureLoader.cpp">
-      <Filter>fbxsdk</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

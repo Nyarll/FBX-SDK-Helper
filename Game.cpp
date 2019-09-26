@@ -39,19 +39,6 @@ void Game::Initialize(HWND window, int width, int height)
 	auto device = m_deviceResources->GetD3DDevice();
 	auto context = m_deviceResources->GetD3DDeviceContext();
 
-	{
-		D3D11_DEPTH_STENCIL_DESC desc;
-		ZeroMemory(&desc, sizeof(desc));
-		desc.DepthEnable = false;
-		desc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ALL;
-		desc.DepthFunc = D3D11_COMPARISON_ALWAYS;
-		desc.StencilEnable = false;
-		desc.FrontFace.StencilFailOp = desc.FrontFace.StencilDepthFailOp = desc.FrontFace.StencilPassOp = D3D11_STENCIL_OP_KEEP;
-		desc.FrontFace.StencilFunc = D3D11_COMPARISON_ALWAYS;
-		desc.BackFace = desc.FrontFace;
-		device->CreateDepthStencilState(&desc, &m_depthStencilState);
-	}
-
 	// <ImGui‰Šú‰»>
 	IMGUI_CHECKVERSION();
 	ImGui::CreateContext();
@@ -61,9 +48,6 @@ void Game::Initialize(HWND window, int width, int height)
 	m_t = 0;
 	m_backColor = { 1,1,1,1 };
 	m_eye = { 0,70,500 };
-
-	m_model = std::make_unique<FBXSDK_Helper::FBX_Model>();
-	m_model->Create(device, context, "Resources/Models/test4.fbx");
 }
 
 Game::~Game()
@@ -119,7 +103,6 @@ void Game::Render()
 	m_view = DirectX::SimpleMath::Matrix::CreateLookAt(eye, target, up);
 
 	DirectX::SimpleMath::Matrix world = XMMatrixRotationY(angleX += addAngle);
-	m_model->Render(context, m_depthStencilState, world, m_view, m_proj);
 
 	// <•`‰æ‚Ì’¼‘O‚É‚±‚ê‚ðŒÄ‚Ô>
 	ImGui_ImplDX11_NewFrame();
