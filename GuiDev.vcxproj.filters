@@ -51,6 +51,9 @@
     <ClInclude Include="Gui\imstb_truetype.h">
       <Filter>Gui</Filter>
     </ClInclude>
+    <ClInclude Include="fbxsdk\FbxModel.h">
+      <Filter>fbxsdk</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="pch.cpp" />
@@ -76,6 +79,9 @@
     </ClCompile>
     <ClCompile Include="Gui\imgui_widgets.cpp">
       <Filter>Gui</Filter>
+    </ClCompile>
+    <ClCompile Include="fbxsdk\FbxModel.cpp">
+      <Filter>fbxsdk</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

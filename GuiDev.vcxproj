@@ -165,6 +165,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="DeviceResources.h" />
+    <ClInclude Include="fbxsdk\FbxModel.h" />
     <ClInclude Include="Game.h" />
     <ClInclude Include="Gui\imconfig.h" />
     <ClInclude Include="Gui\imgui.h" />
@@ -179,6 +180,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="DeviceResources.cpp" />
+    <ClCompile Include="fbxsdk\FbxModel.cpp" />
     <ClCompile Include="Game.cpp" />
     <ClCompile Include="Gui\imgui.cpp" />
     <ClCompile Include="Gui\imgui_demo.cpp" />
