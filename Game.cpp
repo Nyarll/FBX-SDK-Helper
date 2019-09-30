@@ -51,7 +51,8 @@ void Game::Initialize(HWND window, int width, int height)
 	m_eye = { 0,70,500 };
 
 	m_model = std::make_unique<FBX_LOADER::FbxModel>();
-	m_model->Load(window, device, context, m_deviceResources->GetRenderTargetView(), "Resources/Models/test4.fbx");
+	m_model->Load(window, device, context, m_deviceResources->GetRenderTargetView(),
+		"Resources/Models/testMotion.fbx", true);
 }
 
 Game::~Game()
@@ -65,20 +66,12 @@ Game::~Game()
 // Executes the basic game loop.
 void Game::Tick()
 {
-	std::thread th1([&]()
-	{
-		Render();
-	});
-	std::thread th2([&]()
-	{
-		m_timer.Tick([&]()
-		{
-			Update(m_timer);
-		});
-	});
 
-	th1.join();
-	th2.join();
+	m_timer.Tick([&]()
+	{
+		Update(m_timer);
+	});
+	Render();
 }
 
 // Updates the world.
@@ -118,7 +111,7 @@ void Game::Render()
 	DirectX::SimpleMath::Matrix scale = Matrix::CreateScale(1.0f);
 	DirectX::SimpleMath::Matrix world = scale * XMMatrixRotationY(angleX += addAngle);
 
-	
+
 
 	// <•`‰æ‚Ì’¼‘O‚É‚±‚ê‚ðŒÄ‚Ô>
 	ImGui_ImplDX11_NewFrame();

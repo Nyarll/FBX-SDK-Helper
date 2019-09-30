@@ -58,7 +58,10 @@ namespace FBX_LOADER
 
 		bool is_animation = false;
 
-		bool Draw(FbxNode* pNode,
+		bool DrawAnimation(FbxNode* pNode,
+			DirectX::SimpleMath::Matrix world, DirectX::SimpleMath::Matrix view, DirectX::SimpleMath::Matrix proj);
+
+		bool DrawModel(FbxNode* pNode,
 			DirectX::SimpleMath::Matrix world, DirectX::SimpleMath::Matrix view, DirectX::SimpleMath::Matrix proj);
 
 	public:
