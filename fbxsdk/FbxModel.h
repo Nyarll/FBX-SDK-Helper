@@ -56,14 +56,18 @@ namespace FBX_LOADER
 		// <ビューポートの設定>
 		D3D11_VIEWPORT m_vp;
 
-		bool Draw(FbxNode* pNode, FbxTime& time,
+		bool is_animation = false;
+
+		bool Draw(FbxNode* pNode,
 			DirectX::SimpleMath::Matrix world, DirectX::SimpleMath::Matrix view, DirectX::SimpleMath::Matrix proj);
 
 	public:
 		FbxModel();
 		~FbxModel();
 
-		bool Load(HWND hwnd, ID3D11Device* device, ID3D11DeviceContext* context, ID3D11RenderTargetView* renderTargetView, const char* file_name);
+		bool Load(HWND hwnd, ID3D11Device* device,
+			ID3D11DeviceContext* context, ID3D11RenderTargetView* renderTargetView,
+			const char* file_name, bool isAnimation = false);
 
 		void Draw(ID3D11Device* device,
 			ID3D11DeviceContext* context,

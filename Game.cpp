@@ -4,6 +4,7 @@
 
 #include "Game.h"
 
+#include <thread>
 
 
 extern void ExitGame();
@@ -50,7 +51,7 @@ void Game::Initialize(HWND window, int width, int height)
 	m_eye = { 0,70,500 };
 
 	m_model = std::make_unique<FBX_LOADER::FbxModel>();
-	m_model->Load(window, device, context, m_deviceResources->GetRenderTargetView(), "Resources/Models/humanoid.fbx");
+	m_model->Load(window, device, context, m_deviceResources->GetRenderTargetView(), "Resources/Models/test4.fbx");
 }
 
 Game::~Game()
@@ -64,12 +65,20 @@ Game::~Game()
 // Executes the basic game loop.
 void Game::Tick()
 {
-	m_timer.Tick([&]()
+	std::thread th1([&]()
 	{
-		Update(m_timer);
+		Render();
+	});
+	std::thread th2([&]()
+	{
+		m_timer.Tick([&]()
+		{
+			Update(m_timer);
+		});
 	});
 
-	Render();
+	th1.join();
+	th2.join();
 }
 
 // Updates the world.
@@ -106,14 +115,17 @@ void Game::Render()
 	DirectX::SimpleMath::Vector3 up(0, 1, 0);
 	m_view = DirectX::SimpleMath::Matrix::CreateLookAt(eye, target, up);
 
-	DirectX::SimpleMath::Matrix world = XMMatrixRotationY(angleX += addAngle);
+	DirectX::SimpleMath::Matrix scale = Matrix::CreateScale(1.0f);
+	DirectX::SimpleMath::Matrix world = scale * XMMatrixRotationY(angleX += addAngle);
 
-	m_model->Draw(device, context, world, m_view, m_proj);
+	
 
 	// <•`‰æ‚Ì’¼‘O‚É‚±‚ê‚ðŒÄ‚Ô>
 	ImGui_ImplDX11_NewFrame();
 	ImGui_ImplWin32_NewFrame();
 	ImGui::NewFrame();
+
+	m_model->Draw(device, context, world, m_view, m_proj);
 
 	{
 		//ImGui::SetNextWindowSize(ImVec2(320, 320));
@@ -151,6 +163,7 @@ void Game::Render()
 
 	// Show the new frame.
 	m_deviceResources->Present();
+	//m_deviceResources->GetSwapChain()->Present(2, 0);
 }
 
 // Helper method to clear the back buffers.

@@ -1,6 +1,10 @@
 
 #include "FbxModel.h"
 
+#include "../Gui/imgui.h"
+#include "../Gui/imgui_impl_dx11.h"
+#include "../Gui/imgui_impl_win32.h"
+
 FBX_LOADER::FbxModel::FbxModel()
 {
 }
@@ -11,7 +15,9 @@ FBX_LOADER::FbxModel::~FbxModel()
 	m_fbxManager->Destroy();
 }
 
-bool FBX_LOADER::FbxModel::Load(HWND hwnd, ID3D11Device * device, ID3D11DeviceContext * context, ID3D11RenderTargetView* renderTargetView, const char * file_name)
+bool FBX_LOADER::FbxModel::Load(HWND hwnd, ID3D11Device * device,
+	ID3D11DeviceContext * context, ID3D11RenderTargetView* renderTargetView,
+	const char * file_name, bool isAnimation)
 {
 	// <nullptr チェック>
 	if (!device)return false;
@@ -81,16 +87,19 @@ bool FBX_LOADER::FbxModel::Load(HWND hwnd, ID3D11Device * device, ID3D11DeviceCo
 	m_fbxScene = FbxScene::Create(m_fbxManager, "model");
 	m_fbxImporter->Import(m_fbxScene);
 
-	FbxArray<FbxString*> AnimStackNameArray;
-	m_fbxScene->FillAnimStackNameArray(AnimStackNameArray);
-	FbxAnimStack *AnimationStack = m_fbxScene->FindMember<FbxAnimStack>(AnimStackNameArray[AnimStackNumber]->Buffer());
-	m_fbxScene->SetCurrentAnimationStack(AnimationStack);
-
-	FbxTakeInfo *takeInfo = m_fbxScene->GetTakeInfo(*(AnimStackNameArray[AnimStackNumber]));
-	start = takeInfo->mLocalTimeSpan.GetStart();
-	stop = takeInfo->mLocalTimeSpan.GetStop();
-	FrameTime.SetTime(0, 0, 0, 1, 0, m_fbxScene->GetGlobalSettings().GetTimeMode());
-	timeCount = start;
+	if (isAnimation)
+	{
+		is_animation = true;
+		FbxArray<FbxString*> AnimStackNameArray;
+		m_fbxScene->FillAnimStackNameArray(AnimStackNameArray);
+		FbxAnimStack *AnimationStack = m_fbxScene->FindMember<FbxAnimStack>(AnimStackNameArray[AnimStackNumber]->Buffer());
+		m_fbxScene->SetCurrentAnimationStack(AnimationStack);
+		FbxTakeInfo *takeInfo = m_fbxScene->GetTakeInfo(*(AnimStackNameArray[AnimStackNumber]));
+		start = takeInfo->mLocalTimeSpan.GetStart();
+		stop = takeInfo->mLocalTimeSpan.GetStop();
+		FrameTime.SetTime(0, 0, 0, 1, 0, m_fbxScene->GetGlobalSettings().GetTimeMode());
+		timeCount = start;
+	}
 
 	int meshCount = m_fbxScene->GetSrcObjectCount<FbxMesh>();
 	for (int i = 0; i < meshCount; ++i)
@@ -118,15 +127,18 @@ void FBX_LOADER::FbxModel::Draw(ID3D11Device * device, ID3D11DeviceContext * con
 	DirectX::SimpleMath::Matrix world, DirectX::SimpleMath::Matrix view, DirectX::SimpleMath::Matrix proj)
 {
 	// ----- Animation -----
-	timeCount += FrameTime;
-	if (timeCount > stop) timeCount = start;
-
-	this->Draw(m_fbxScene->GetRootNode(), timeCount, world, view, proj);
+	if (is_animation)
+	{
+		timeCount += FrameTime;
+		if (timeCount > stop) timeCount = start;
+	}
+	this->Draw(m_fbxScene->GetRootNode(), world, view, proj);
 }
 
-bool FBX_LOADER::FbxModel::Draw(FbxNode * pNode, FbxTime & time,
+bool FBX_LOADER::FbxModel::Draw(FbxNode * pNode,
 	DirectX::SimpleMath::Matrix world, DirectX::SimpleMath::Matrix view, DirectX::SimpleMath::Matrix proj)
 {
+
 	// 移動、回転、拡大のための行列を作成
 	FbxMatrix globalPosition = pNode->EvaluateGlobalTransform(timeCount);
 	FbxVector4 t0 = pNode->GetGeometricTranslation(FbxNode::eSourcePivot);
@@ -140,12 +152,16 @@ bool FBX_LOADER::FbxModel::Draw(FbxNode * pNode, FbxTime & time,
 		FbxMesh* mesh = m_fbxMeshes[i];
 
 		VERTEX* vertices = new VERTEX[mesh->GetControlPointsCount()];
-		//for (int i = 0; i < mesh->GetControlPointsCount(); i++)
-		//{
-		//	vertices[i].Pos.x = mesh->GetControlPointAt(i)[0];
-		//	vertices[i].Pos.y = mesh->GetControlPointAt(i)[1];
-		//	vertices[i].Pos.z = mesh->GetControlPointAt(i)[2];
-		//}
+		for (int i = 0; i < mesh->GetControlPointsCount(); i++)
+		{
+			float x = mesh->GetControlPointAt(i)[0];
+			float y = mesh->GetControlPointAt(i)[1];
+			float z = mesh->GetControlPointAt(i)[2];
+
+			ImGui::Begin(u8"data", nullptr);
+			ImGui::Text("( %.2f, %.2f, %.2f )", x, y, z);
+			ImGui::End();
+		}
 
 		D3D11_BUFFER_DESC bd_vertex;
 		bd_vertex.ByteWidth = sizeof(VERTEX) * mesh->GetControlPointsCount();
@@ -187,48 +203,60 @@ bool FBX_LOADER::FbxModel::Draw(FbxNode * pNode, FbxTime & time,
 		m_context->OMSetRenderTargets(1, &m_renderTargetView, NULL);
 		m_context->RSSetViewports(1, &m_vp);
 
-		// 各頂点に掛けるための最終的な行列の配列
-		FbxMatrix *clusterDeformation = new FbxMatrix[mesh->GetControlPointsCount()];
-		memset(clusterDeformation, 0, sizeof(FbxMatrix) * mesh->GetControlPointsCount());
+		if (is_animation)
+		{
+			// 各頂点に掛けるための最終的な行列の配列
+			FbxMatrix *clusterDeformation = new FbxMatrix[mesh->GetControlPointsCount()];
+			memset(clusterDeformation, 0, sizeof(FbxMatrix) * mesh->GetControlPointsCount());
 
-		FbxSkin *skinDeformer = (FbxSkin *)mesh->GetDeformer(0, FbxDeformer::eSkin);
-		int clusterCount = skinDeformer->GetClusterCount();
-		// 各クラスタから各頂点に影響を与えるための行列作成
-		for (int clusterIndex = 0; clusterIndex < clusterCount; clusterIndex++) {
-			// クラスタ(ボーン)の取り出し
-			FbxCluster *cluster = skinDeformer->GetCluster(clusterIndex);
-			FbxMatrix vertexTransformMatrix;
-			FbxAMatrix referenceGlobalInitPosition;
-			FbxAMatrix clusterGlobalInitPosition;
-			FbxMatrix clusterGlobalCurrentPosition;
-			FbxMatrix clusterRelativeInitPosition;
-			FbxMatrix clusterRelativeCurrentPositionInverse;
-			cluster->GetTransformMatrix(referenceGlobalInitPosition);
-			referenceGlobalInitPosition *= geometryOffset;
-			cluster->GetTransformLinkMatrix(clusterGlobalInitPosition);
-			clusterGlobalCurrentPosition = cluster->GetLink()->EvaluateGlobalTransform(timeCount);
-			clusterRelativeInitPosition = clusterGlobalInitPosition.Inverse() * referenceGlobalInitPosition;
-			clusterRelativeCurrentPositionInverse = globalPosition.Inverse() * clusterGlobalCurrentPosition;
-			vertexTransformMatrix = clusterRelativeCurrentPositionInverse * clusterRelativeInitPosition;
-			// 上で作った行列に各頂点毎の影響度(重み)を掛けてそれぞれに加算
-			for (int i = 0; i < cluster->GetControlPointIndicesCount(); i++) {
-				int index = cluster->GetControlPointIndices()[i];
-				double weight = cluster->GetControlPointWeights()[i];
-				FbxMatrix influence = vertexTransformMatrix * weight;
-				clusterDeformation[index] += influence;
+			FbxSkin *skinDeformer = (FbxSkin *)mesh->GetDeformer(0, FbxDeformer::eSkin);
+			int clusterCount = skinDeformer->GetClusterCount();
+			// 各クラスタから各頂点に影響を与えるための行列作成
+			for (int clusterIndex = 0; clusterIndex < clusterCount; clusterIndex++) {
+				// クラスタ(ボーン)の取り出し
+				FbxCluster *cluster = skinDeformer->GetCluster(clusterIndex);
+				FbxMatrix vertexTransformMatrix;
+				FbxAMatrix referenceGlobalInitPosition;
+				FbxAMatrix clusterGlobalInitPosition;
+				FbxMatrix clusterGlobalCurrentPosition;
+				FbxMatrix clusterRelativeInitPosition;
+				FbxMatrix clusterRelativeCurrentPositionInverse;
+				cluster->GetTransformMatrix(referenceGlobalInitPosition);
+				referenceGlobalInitPosition *= geometryOffset;
+				cluster->GetTransformLinkMatrix(clusterGlobalInitPosition);
+				clusterGlobalCurrentPosition = cluster->GetLink()->EvaluateGlobalTransform(timeCount);
+				clusterRelativeInitPosition = clusterGlobalInitPosition.Inverse() * referenceGlobalInitPosition;
+				clusterRelativeCurrentPositionInverse = globalPosition.Inverse() * clusterGlobalCurrentPosition;
+				vertexTransformMatrix = clusterRelativeCurrentPositionInverse * clusterRelativeInitPosition;
+				// 上で作った行列に各頂点毎の影響度(重み)を掛けてそれぞれに加算
+				for (int cnt = 0; cnt < cluster->GetControlPointIndicesCount(); cnt++) {
+					int index = cluster->GetControlPointIndices()[cnt];
+					double weight = cluster->GetControlPointWeights()[cnt];
+					FbxMatrix influence = vertexTransformMatrix * weight;
+					clusterDeformation[index] += influence;
+				}
 			}
-		}
 
-		
-		// 最終的な頂点座標を計算しVERTEXに変換
-		for (int i = 0; i < mesh->GetControlPointsCount(); i++) {
-			FbxVector4 outVertex = clusterDeformation[i].MultNormalize(mesh->GetControlPointAt(i));
-			vertices[i].Pos.x = (FLOAT)outVertex[0];
-			vertices[i].Pos.y = (FLOAT)outVertex[1];
-			vertices[i].Pos.z = (FLOAT)outVertex[2];
-		}
 
-		delete[] clusterDeformation;
+			// 最終的な頂点座標を計算しVERTEXに変換
+			int count = mesh->GetControlPointsCount();
+			for (int cnt = 0; cnt < count; cnt++) {
+				FbxVector4 outVertex = clusterDeformation[cnt].MultNormalize(mesh->GetControlPointAt(cnt));
+				float x = (FLOAT)outVertex[0];
+				float y = (FLOAT)outVertex[1];
+				float z = (FLOAT)outVertex[2];
+
+				vertices[cnt].Pos.x = x;
+				vertices[cnt].Pos.y = y;
+				vertices[cnt].Pos.z = z;
+
+				ImGui::Begin(u8"data", nullptr);
+				ImGui::Text("( %.2f, %.2f, %.2f )", x, y, z);
+				ImGui::End();
+			}
+
+			delete[] clusterDeformation;
+		}
 		// ---------------------
 
 		D3D11_MAPPED_SUBRESOURCE pdata;
@@ -239,14 +267,16 @@ bool FBX_LOADER::FbxModel::Draw(FbxNode * pNode, FbxTime & time,
 		memcpy_s(pdata.pData, pdata.RowPitch, (void*)(&cb), sizeof(cb));
 		m_context->Unmap(m_constantBuffer, 0);
 
+		int ControlPointsCount = mesh->GetControlPointsCount();
+
 		// パラメータの受け渡し(頂点)
 		m_context->Map(VerBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &pdata);
-		memcpy_s(pdata.pData, pdata.RowPitch, (void*)(vertices), sizeof(VERTEX) * mesh->GetControlPointsCount());
+		memcpy_s(pdata.pData, pdata.RowPitch, (void*)(vertices), sizeof(VERTEX) * ControlPointsCount);
 		m_context->Unmap(VerBuffer, 0);
 
-		// 2019 : 09 : 30 <ビルドは通るが、ここでエラーを吐く>
+		// 2019 : 09 : 30 <描画は一応される>
 		// <描画実行>
-		m_context->DrawIndexed(mesh->GetControlPointsCount(), 0, 0);
+		m_context->DrawIndexed(ControlPointsCount, 0, 0);
 
 		delete[] vertices;
 		VerBuffer->Release();
