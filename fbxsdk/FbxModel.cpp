@@ -134,10 +134,59 @@ bool FBX_LOADER::FbxModel::Draw(FbxNode * pNode, FbxTime & time,
 	FbxVector4 s0 = pNode->GetGeometricScaling(FbxNode::eSourcePivot);
 	FbxAMatrix geometryOffset = FbxAMatrix(t0, r0, s0);
 
-	int Count = 1;// m_fbxMeshes.size();
+	int Count = m_fbxMeshes.size();
 	for (int i = 0; i < Count; i++)
 	{
 		FbxMesh* mesh = m_fbxMeshes[i];
+
+		VERTEX* vertices = new VERTEX[mesh->GetControlPointsCount()];
+		//for (int i = 0; i < mesh->GetControlPointsCount(); i++)
+		//{
+		//	vertices[i].Pos.x = mesh->GetControlPointAt(i)[0];
+		//	vertices[i].Pos.y = mesh->GetControlPointAt(i)[1];
+		//	vertices[i].Pos.z = mesh->GetControlPointAt(i)[2];
+		//}
+
+		D3D11_BUFFER_DESC bd_vertex;
+		bd_vertex.ByteWidth = sizeof(VERTEX) * mesh->GetControlPointsCount();
+		bd_vertex.Usage = D3D11_USAGE_DYNAMIC;
+		bd_vertex.BindFlags = D3D11_BIND_VERTEX_BUFFER;
+		bd_vertex.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
+		bd_vertex.MiscFlags = 0;
+		bd_vertex.StructureByteStride = 0;
+		if (FAILED(m_device->CreateBuffer(&bd_vertex, NULL, &VerBuffer))) {
+			assert(false && "Missing !");
+		}
+
+		// インデックスデータの取り出しとバッファの設定
+		D3D11_BUFFER_DESC bd_index;
+		bd_index.ByteWidth = sizeof(int) * mesh->GetPolygonVertexCount();
+		bd_index.Usage = D3D11_USAGE_DEFAULT;
+		bd_index.BindFlags = D3D11_BIND_INDEX_BUFFER;
+		bd_index.CPUAccessFlags = 0;
+		bd_index.MiscFlags = 0;
+		bd_index.StructureByteStride = 0;
+		D3D11_SUBRESOURCE_DATA data_index;
+		data_index.pSysMem = mesh->GetPolygonVertices();
+		if (FAILED(m_device->CreateBuffer(&bd_index, &data_index, &IndBuffer)))
+		{
+			assert(false && "Missing !");
+		}
+
+		UINT stride = sizeof(VERTEX);
+		UINT offset = 0;
+		m_context->IASetVertexBuffers(0, 1, &VerBuffer, &stride, &offset);
+		m_context->IASetIndexBuffer(IndBuffer, DXGI_FORMAT_R32_UINT, 0);
+		m_context->IASetInputLayout(pVertexLayout);
+		m_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+		m_context->VSSetConstantBuffers(0, 1, &m_constantBuffer);
+		m_context->PSSetConstantBuffers(0, 1, &m_constantBuffer);
+		m_context->VSSetShader(pVertexShader, NULL, 0);
+		m_context->PSSetShader(pPixelShader, NULL, 0);
+		m_context->RSSetState(pRasterizerState);
+		m_context->OMSetRenderTargets(1, &m_renderTargetView, NULL);
+		m_context->RSSetViewports(1, &m_vp);
+
 		// 各頂点に掛けるための最終的な行列の配列
 		FbxMatrix *clusterDeformation = new FbxMatrix[mesh->GetControlPointsCount()];
 		memset(clusterDeformation, 0, sizeof(FbxMatrix) * mesh->GetControlPointsCount());
@@ -170,7 +219,7 @@ bool FBX_LOADER::FbxModel::Draw(FbxNode * pNode, FbxTime & time,
 			}
 		}
 
-		VERTEX* vertices = new VERTEX[mesh->GetControlPointsCount()];
+		
 		// 最終的な頂点座標を計算しVERTEXに変換
 		for (int i = 0; i < mesh->GetControlPointsCount(); i++) {
 			FbxVector4 outVertex = clusterDeformation[i].MultNormalize(mesh->GetControlPointAt(i));
@@ -181,32 +230,6 @@ bool FBX_LOADER::FbxModel::Draw(FbxNode * pNode, FbxTime & time,
 
 		delete[] clusterDeformation;
 		// ---------------------
-
-		D3D11_BUFFER_DESC bd_vertex;
-		bd_vertex.ByteWidth = sizeof(VERTEX) * mesh->GetControlPointsCount();
-		bd_vertex.Usage = D3D11_USAGE_DYNAMIC;
-		bd_vertex.BindFlags = D3D11_BIND_VERTEX_BUFFER;
-		bd_vertex.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
-		bd_vertex.MiscFlags = 0;
-		bd_vertex.StructureByteStride = 0;
-		if (FAILED(m_device->CreateBuffer(&bd_vertex, NULL, &VerBuffer))) {
-			assert(false && "Missing !");
-		}
-
-		// インデックスデータの取り出しとバッファの設定
-		D3D11_BUFFER_DESC bd_index;
-		bd_index.ByteWidth = sizeof(int) * mesh->GetPolygonVertexCount();
-		bd_index.Usage = D3D11_USAGE_DEFAULT;
-		bd_index.BindFlags = D3D11_BIND_INDEX_BUFFER;
-		bd_index.CPUAccessFlags = 0;
-		bd_index.MiscFlags = 0;
-		bd_index.StructureByteStride = 0;
-		D3D11_SUBRESOURCE_DATA data_index;
-		data_index.pSysMem = mesh->GetPolygonVertices();
-		if (FAILED(m_device->CreateBuffer(&bd_index, &data_index, &IndBuffer)))
-		{
-			assert(false && "Missing !");
-		}
 
 		D3D11_MAPPED_SUBRESOURCE pdata;
 		CONSTANT_BUFFER cb;
@@ -221,27 +244,16 @@ bool FBX_LOADER::FbxModel::Draw(FbxNode * pNode, FbxTime & time,
 		memcpy_s(pdata.pData, pdata.RowPitch, (void*)(vertices), sizeof(VERTEX) * mesh->GetControlPointsCount());
 		m_context->Unmap(VerBuffer, 0);
 
-		UINT stride = sizeof(VERTEX);
-		UINT offset = 0;
-		m_context->IASetVertexBuffers(0, 1, &VerBuffer, &stride, &offset);
-		m_context->IASetIndexBuffer(IndBuffer, DXGI_FORMAT_R32_UINT, 0);
-		m_context->IASetInputLayout(pVertexLayout);
-		m_context->VSSetConstantBuffers(0, 1, &m_constantBuffer);
-		m_context->PSSetConstantBuffers(0, 1, &m_constantBuffer);
-		m_context->VSSetShader(pVertexShader, NULL, 0);
-		m_context->PSSetShader(pPixelShader, NULL, 0);
-		m_context->RSSetState(pRasterizerState);
-		m_context->OMSetRenderTargets(1, &m_renderTargetView, NULL);
-		m_context->RSSetViewports(1, &m_vp);
-
 		// 2019 : 09 : 30 <ビルドは通るが、ここでエラーを吐く>
 		// <描画実行>
 		m_context->DrawIndexed(mesh->GetControlPointsCount(), 0, 0);
 
 		delete[] vertices;
 		VerBuffer->Release();
+		//delete VerBuffer;
 		VerBuffer = nullptr;
 		IndBuffer->Release();
+		//delete IndBuffer;
 		IndBuffer = nullptr;
 	}
 	return true;
